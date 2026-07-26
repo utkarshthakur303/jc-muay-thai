@@ -1,0 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --color-void: #0B0B0C;
+  --color-onyx: #121214;
+  --color-gold: #C5A880;
+  --color-gold-dim: rgba(197, 168, 128, 0.4);
+  --color-crimson: #FF2A4B;
+  --color-bone: #EDEAE2;
+  --color-canvas: #3A3733;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: auto;
+}
+
+body {
+  background-color: #0B0B0C;
+  color: #EDEAE2;
+  font-family: 'DM Sans', sans-serif;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  overflow-x: hidden;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom cursor - hide system cursor */
+html, * {
+  cursor: none !important;
+}
+
+/* Gold focus outline */
+*:focus-visible {
+  outline: 1px solid #C5A880;
+  outline-offset: 3px;
+}
+
+/* Wrap animation film grain overlay */
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-2%, -3%); }
+  20% { transform: translate(3%, 2%); }
+  30% { transform: translate(-1%, 4%); }
+  40% { transform: translate(4%, -1%); }
+  50% { transform: translate(-3%, 3%); }
+  60% { transform: translate(2%, -4%); }
+  70% { transform: translate(-4%, 1%); }
+  80% { transform: translate(1%, -2%); }
+  90% { transform: translate(-2%, 4%); }
+}
+
+.grain-overlay::before {
+  content: '';
+  position: fixed;
+  inset: -200%;
+  width: 400%;
+  height: 400%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  animation: grain 0.5s steps(1) infinite;
+  pointer-events: none;
+  z-index: 9990;
+  opacity: 0.4;
+}
+
+/* Vignette */
+.vignette::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(11,11,12,0.7) 100%);
+  pointer-events: none;
+  z-index: 9;
+}
+
+@keyframes cta-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(197,168,128,0); }
+  50% { box-shadow: 0 0 0 4px rgba(197,168,128,0.15); }
+}
+
+.cta-pulse {
+  animation: cta-pulse 3s ease-in-out infinite;
+}
+
+@keyframes gold-wipe {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0% 0 0); }
+}
+
+.gold-wipe {
+  animation: gold-wipe 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes bulb-flicker {
+  0% { opacity: 0; }
+  20% { opacity: 0.9; }
+  25% { opacity: 0.1; }
+  30% { opacity: 1; }
+  35% { opacity: 0.4; }
+  40% { opacity: 0.95; }
+  100% { opacity: 1; }
+}
+
+.bulb-on {
+  animation: bulb-flicker 0.8s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain-overlay::before {
+    animation: none;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
