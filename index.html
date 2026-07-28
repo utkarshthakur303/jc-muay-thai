@@ -1,16 +1,725 @@
-<!doctype html>
-<html lang="<!-- figma:lang -->">
-  <head>
-    <!-- figma:head-start -->
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title><!-- figma:title --></title>
-    <!-- figma:head-end -->
-  </head>
-  <body>
-    <!-- figma:body-start -->
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    <!-- figma:body-end -->
-  </body>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="ext-resource-dependency" content="uploads/photo-1525680996651-0222228be6f0-sm.jpeg" data-resource-id="img-hero"></meta>
+<meta name="ext-resource-dependency" content="uploads/photo-1680022546558-550eaf22351e-sm.jpeg" data-resource-id="img-promo"></meta>
+<meta name="ext-resource-dependency" content="uploads/photo-1637974013743-82656f7c3f49-sm.jpeg" data-resource-id="img-beginner"></meta>
+<meta name="ext-resource-dependency" content="uploads/photo-1729673517080-44353fa68fe0-sm.jpeg" data-resource-id="img-intermediate"></meta>
+<meta name="ext-resource-dependency" content="uploads/photo-1601039834076-c41cf1766d4b-sm.jpeg" data-resource-id="img-advanced"></meta>
+<meta name="ext-resource-dependency" content="uploads/photo-1607702713064-0143212236ae-sm.jpeg" data-resource-id="img-silhouette"></meta>
+<meta name="ext-resource-dependency" content="uploads/photo-1612179736716-d643f0bdcf4e-sm.jpeg" data-resource-id="img-gloves"></meta>
+<meta name="ext-resource-dependency" content="uploads/photo-1562679452-763edf60a0b7-sm.jpeg" data-resource-id="img-shadow"></meta>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" data-bg-color="#0B0B0C"><rect width="200" height="200" fill="#0B0B0C"></rect><circle cx="100" cy="100" r="55" fill="none" stroke="#FF8037" stroke-width="6"></circle><path d="M100 60 L100 100 L128 118" stroke="#FF8037" stroke-width="6" stroke-linecap="round" fill="none"></path></svg>
+</template>
+<style>
+  :root { --bg:#0B0B0C; --text:#EDEAE2; --border:#3A3733; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); font-family: 'Manrope', sans-serif; cursor: none; transition: background .3s ease; }
+  ::selection { background: #FF8037; color: #0B0B0C; }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes floatDrift { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  a { color: #FF8037; text-decoration: none; }
+  a:hover { color: var(--text); }
+  @media (max-width: 980px) {
+    #home { height: auto !important; min-height: 0 !important; }
+    .jc-bento { height: auto !important; grid-template-rows: none !important; grid-template-columns: 1fr !important; }
+    .jc-bento > * { grid-column: 1 !important; grid-row: auto !important; min-height: 240px; }
+    .jc-sidebar { display: none !important; }
+    .jc-main { margin-left: 0 !important; }
+    .jc-navbar { left: 24px !important; }
+    .jc-stat-pair { grid-column: span 1 !important; }
+    .jc-classes-grid { grid-template-columns: 1fr !important; }
+    .jc-gallery-grid { column-count: 2 !important; }
+    .jc-contact-grid { grid-template-columns: 1fr !important; }
+    .jc-navbar-tabs { display: none !important; }
+    .jc-drawer { width: 100% !important; }
+    .jc-mobile-nav { display: flex !important; }
+    .jc-main { padding: 100px 20px 120px !important; }
+    .jc-main > section:not(#home) { margin-top: 64px !important; }
+  }
+  @media (max-width: 560px) {
+    .jc-gallery-grid { column-count: 1 !important; }
+    .jc-search-pill { display: none !important; }
+    .jc-navbar { left: 16px !important; right: 16px !important; padding: 0 8px 0 18px !important; }
+    .jc-main { padding: 92px 16px 120px !important; }
+    .jc-classes-grid { gap: 16px !important; }
+    .jc-drawer { padding: 24px 20px !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</helmet>
+
+<div style="{{ pageWrapStyle }}" onMouseMove="{{ onCursorMove }}">
+
+  <div class="jc-cursor" style="{{ cursorStyle }}"></div>
+
+  <!-- SIDEBAR -->
+  <nav class="jc-sidebar" style="position:fixed; top:24px; bottom:24px; left:24px; width:76px; background:#FF8037; border-radius:38px; display:flex; flex-direction:column; align-items:center; padding:20px 0; z-index:40; box-shadow:0 20px 60px rgba(0,0,0,0.45);">
+    <div style="width:44px; height:44px; border-radius:50%; background:#0B0B0C; display:flex; align-items:center; justify-content:center; margin-bottom:28px; flex-shrink:0;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#FF8037" stroke-width="2"></circle><path d="M12 5 L12 12 L16 15" stroke="#FF8037" stroke-width="2" stroke-linecap="round"></path></svg>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px; flex:1;">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="5">
+        <a href="{{ item.href }}" data-hover="true" style="{{ item.style }}" onMouseEnter="{{ item.onEnter }}" onMouseLeave="{{ item.onLeave }}">
+          <span style="{{ item.iconWrapStyle }}" dangerouslySetInnerHTML="{{ item.iconHtml }}"></span>
+        </a>
+      </sc-for>
+    </div>
+    <a href="#drawer" data-hover="true" onClick="{{ openDrawer }}" style="position:relative; width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:transparent; margin-top:12px; flex-shrink:0;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 17h12M7 17V10a5 5 0 0 1 10 0v7" stroke="#0B0B0C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 20a2 2 0 0 0 4 0" stroke="#0B0B0C" stroke-width="2" stroke-linecap="round"></path></svg>
+      <span style="position:absolute; top:2px; right:4px; min-width:18px; height:18px; padding:0 4px; border-radius:9px; background:#FF2A4B; color:#EDEAE2; font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center;">{{ openSpots }}</span>
+    </a>
+  </nav>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <nav class="jc-mobile-nav" style="{{ mobileNavStyle }}">
+    <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="5">
+      <a href="{{ item.href }}" style="color:{{ item.mobileColor }}; display:flex; flex-direction:column; align-items:center; gap:4px; font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:10px; flex:1; min-width:0;">
+        <span style="width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;" dangerouslySetInnerHTML="{{ item.iconHtmlMobile }}"></span>
+        {{ item.label }}
+      </a>
+    </sc-for>
+  </nav>
+
+  <!-- TOP NAVBAR -->
+  <header class="jc-navbar" style="{{ navbarStyle }}">
+    <div class="jc-navbar-tabs" style="display:flex; gap:26px;">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="5">
+        <a href="{{ item.href }}" style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:12px; letter-spacing:0.14em; font-weight:600; color:{{ item.tabColor }}; padding-bottom:8px; border-bottom:2px solid {{ item.tabBorder }}; text-transform:uppercase;">{{ item.label }}</a>
+      </sc-for>
+    </div>
+    <div style="display:flex; align-items:center; gap:14px; margin-left:auto;">
+      <div class="jc-search-pill" style="{{ searchPillStyle }}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;"><circle cx="11" cy="11" r="7" stroke="#FF8037" stroke-width="2"></circle><path d="M21 21l-4.3-4.3" stroke="#FF8037" stroke-width="2" stroke-linecap="round"></path></svg>
+        <input placeholder="Search classes, schedule, gear…" onFocus="{{ onSearchFocus }}" onBlur="{{ onSearchBlur }}" style="{{ searchInputStyle }}" />
+      </div>
+      <button data-hover="true" onClick="{{ toggleTheme }}" style="{{ themeToggleStyle }}">
+        <span dangerouslySetInnerHTML="{{ themeToggleIcon }}"></span>
+      </button>
+      <button data-hover="true" onClick="{{ openDrawer }}" style="width:52px; height:52px; border-radius:50%; background:#FF8037; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="16" rx="3" stroke="#0B0B0C" stroke-width="2"></rect><path d="M4 10h16M9 3v4M15 3v4" stroke="#0B0B0C" stroke-width="2" stroke-linecap="round"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="jc-main" style="margin-left:124px; padding:120px 32px 80px; max-width:1440px;">
+
+    <!-- HOME -->
+    <section id="home" data-screen-label="Home" ref="{{ setHomeRef }}" style="height:calc(100vh - 152px); min-height:560px;">
+      <div class="jc-bento" style="{{ bentoGridStyle }}">
+        <div style="{{ heroCardStyle }}" style-hover="box-shadow:0 30px 70px rgba(255,122,41,0.28);" data-hover="true" onMouseMove="{{ onCardMove }}" onMouseLeave="{{ onCardLeave }}">
+          <div style="{{ heroOverlayStyle }}"></div>
+          <div style="position:relative; z-index:2;">
+            <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:12px; letter-spacing:0.16em; color:#FF8037; text-transform:uppercase; margin-bottom:14px;">Muay Thai — Jersey City</div>
+            <h1 style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:clamp(36px,4.2vw,64px); letter-spacing:0.01em; color:{{ theme.text }}; margin:0; line-height:0.95;">JC MUAYTHAI</h1>
+            <div style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:18px; letter-spacing:0.1em; color:#FF8037; margin-top:8px;">UNLEASH YOUR INNER FIGHTER</div>
+            <p style="font-family:'Manrope', -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:14px; line-height:1.6; color:{{ theme.text2 }}; max-width:420px; margin:14px 0 20px;">Train authentic Muay Thai. Build confidence. Improve fitness. Learn real skills. Join our community and start your journey today.</p>
+            <div style="display:flex; gap:12px;">
+              <sc-for list="{{ heroLevels }}" as="lvl" hint-placeholder-count="3">
+                <a href="{{ lvl.href }}" data-hover="true" style="{{ lvl.btnStyle }}" onMouseEnter="{{ lvl.onEnter }}" onMouseLeave="{{ lvl.onLeave }}">
+                  <span style="{{ lvl.ringStyle }}"></span>
+                  <span dangerouslySetInnerHTML="{{ lvl.iconHtml }}"></span>
+                </a>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div class="jc-stat-pair" style="{{ statCardStyle }}" style-hover="box-shadow:0 30px 70px rgba(255,122,41,0.28);" data-hover="true" onMouseMove="{{ onCardMove }}" onMouseLeave="{{ onCardLeave }}">
+          <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; letter-spacing:0.12em; color:{{ theme.text2 }}; text-transform:uppercase;">In Jersey City</div>
+          <div style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:52px; color:{{ theme.text }}; margin-top:6px;">10+ YEARS</div>
+          <svg width="100%" height="32" viewBox="0 0 220 46" style="margin-top:10px; overflow:visible;">
+            <path d="M2 30 Q 40 10, 70 26 T 140 20 T 218 8" fill="none" stroke="{{ theme.border }}" stroke-width="2"></path>
+            <path d="M2 30 Q 40 10, 70 26 T 140 20 T 218 8" fill="none" stroke="#FF8037" stroke-width="2.5" style="{{ ropeLineStyle }}"></path>
+          </svg>
+        </div>
+
+        <div class="jc-stat-pair" style="{{ statCardStyle }}" style-hover="box-shadow:0 30px 70px rgba(255,122,41,0.28);" data-hover="true" onMouseMove="{{ onCardMove }}" onMouseLeave="{{ onCardLeave }}">
+          <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; letter-spacing:0.12em; color:{{ theme.text2 }}; text-transform:uppercase;">Morning &amp; evening, most weekdays</div>
+          <div style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:52px; color:{{ theme.text }}; margin-top:6px;">2× DAILY</div>
+          <svg width="100%" height="32" viewBox="0 0 220 46" style="margin-top:10px; overflow:visible;">
+            <path d="M2 22 Q 50 40, 90 14 T 160 24 T 218 12" fill="none" stroke="{{ theme.border }}" stroke-width="2"></path>
+            <path d="M2 22 Q 50 40, 90 14 T 160 24 T 218 12" fill="none" stroke="#FF8037" stroke-width="2.5" style="{{ ropeLineStyle2 }}"></path>
+            <sc-if value="{{ isActiveSessionNow }}" hint-placeholder-val="{{ false }}">
+              <circle cx="160" cy="24" r="5" fill="#FF2A4B"></circle>
+            </sc-if>
+          </svg>
+        </div>
+
+        <div style="{{ promoCardStyle }}" style-hover="box-shadow:0 30px 70px rgba(255,122,41,0.28);" data-hover="true" onMouseMove="{{ onCardMove }}" onMouseLeave="{{ onCardLeave }}">
+          <img src="{{ promoImg }}" alt="Gym floor" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.55;" />
+          <div style="{{ promoOverlayStyle }}"></div>
+          <div style="position:relative; z-index:2; display:flex; flex-direction:column; justify-content:center; height:100%; padding:0 clamp(20px,3vw,40px);">
+            <div style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:clamp(24px,2.4vw,32px); color:{{ theme.text }}; letter-spacing:0.01em;">Your First Class Is Free</div>
+            <div style="font-family:'Manrope', -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:13px; color:{{ theme.text2 }}; margin-top:4px;">No gear, no experience needed — just show up.</div>
+          </div>
+          <div style="{{ promoBadgeStyle }}">Open Gym Fridays 4–6PM</div>
+        </div>
+
+        <div style="{{ chartCardStyle }}" style-hover="box-shadow:0 30px 70px rgba(255,122,41,0.28);" data-hover="true" onMouseMove="{{ onCardMove }}" onMouseLeave="{{ onCardLeave }}" ref="{{ setChartRef }}">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
+            <div>
+              <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; letter-spacing:0.12em; color:{{ theme.text2 }}; text-transform:uppercase;">Sessions</div>
+              <div style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:28px; color:{{ theme.text }};">WEEKLY CLASS LOAD</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:34px; color:#FF8037;">37<span style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:14px; color:{{ theme.text2 }};"> classes/wk</span></div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:flex-end; gap:14px; height:min(20vh,120px); margin-top:6px;">
+            <sc-for list="{{ barData }}" as="bar" hint-placeholder-count="6">
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end;">
+                <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:12px; font-weight:600; color:{{ bar.labelColor }};">{{ bar.sessions }}</div>
+                <div style="{{ bar.style }}"></div>
+                <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; color:{{ bar.labelColor }};">{{ bar.day }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:12px; font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:12px; color:{{ theme.text2 }};">Busiest: Mon / Wed / Thu</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLASSES -->
+    <section id="classes" data-screen-label="Classes" style="margin-top:100px;">
+      <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px;">
+        <h2 style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:44px; color:{{ theme.text }}; margin:0; letter-spacing:0.01em;">CLASSES</h2>
+        <div style="display:flex; gap:24px;">
+          <sc-for list="{{ classTabs }}" as="tab" hint-placeholder-count="3">
+            <button onClick="{{ tab.onClick }}" style="{{ tab.style }}">{{ tab.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div class="jc-classes-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px;">
+        <sc-for list="{{ classesData }}" as="cls" hint-placeholder-count="3">
+          <div style="{{ cls.cardStyle }}">
+            <img src="{{ cls.img }}" alt="{{ cls.title }}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.4;" />
+            <div style="{{ cls.overlayStyle }}"></div>
+            <div style="position:relative; z-index:2; padding:32px; display:flex; flex-direction:column; height:100%;">
+              <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:13px; color:#FF8037; letter-spacing:0.1em;">{{ cls.num }}</div>
+              <div style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:32px; color:{{ theme.text }}; margin-top:8px;">{{ cls.title }}</div>
+              <p style="font-family:'Manrope', -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:14px; line-height:1.6; color:{{ theme.text2 }}; margin-top:14px; flex:1;">{{ cls.desc }}</p>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <!-- SCHEDULE -->
+    <section id="schedule" data-screen-label="Schedule" style="margin-top:100px;">
+      <h2 style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:44px; color:{{ theme.text }}; margin:0 0 20px; letter-spacing:0.01em;">SCHEDULE</h2>
+      <div style="{{ tickerStyle }}">
+        <div style="white-space:nowrap; display:inline-block; animation:marquee 22s linear infinite;">
+          <span style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:13px; color:#FF8037; letter-spacing:0.08em; padding:0 40px;">SCHEDULE MAY VARY DURING SUMMER MONTHS DUE TO LOWER STUDENT ATTENDANCE.</span>
+          <span style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:13px; color:#FF8037; letter-spacing:0.08em; padding:0 40px;">SCHEDULE MAY VARY DURING SUMMER MONTHS DUE TO LOWER STUDENT ATTENDANCE.</span>
+        </div>
+      </div>
+      <div style="{{ tableWrapStyle }}">
+        <table style="width:100%; border-collapse:collapse; font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:13px; min-width:640px;">
+          <thead>
+            <tr>
+              <th style="text-align:left; color:{{ theme.text2 }}; font-weight:500; padding:10px 12px; border-bottom:1px solid {{ theme.border }};">DAY</th>
+              <th style="text-align:left; color:{{ theme.text2 }}; font-weight:500; padding:10px 12px; border-bottom:1px solid {{ theme.border }};">BEGINNER</th>
+              <th style="text-align:left; color:{{ theme.text2 }}; font-weight:500; padding:10px 12px; border-bottom:1px solid {{ theme.border }};">INTERMEDIATE</th>
+              <th style="text-align:left; color:{{ theme.text2 }}; font-weight:500; padding:10px 12px; border-bottom:1px solid {{ theme.border }};">ADVANCED</th>
+              <th style="text-align:left; color:{{ theme.text2 }}; font-weight:500; padding:10px 12px; border-bottom:1px solid {{ theme.border }};">OTHER</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ scheduleRows }}" as="row" hint-placeholder-count="6">
+              <tr onClick="{{ row.onClick }}" style="cursor:pointer;">
+                <td style="padding:12px; color:#FF8037; font-weight:600; border-bottom:1px solid {{ theme.divider }};">{{ row.day }}</td>
+                <td style="padding:12px; color:{{ theme.text }}; border-bottom:1px solid {{ theme.divider }};">{{ row.beginner }}</td>
+                <td style="padding:12px; color:{{ theme.text }}; border-bottom:1px solid {{ theme.divider }};">{{ row.intermediate }}</td>
+                <td style="padding:12px; color:{{ theme.text }}; border-bottom:1px solid {{ theme.divider }};">{{ row.advanced }}</td>
+                <td style="padding:12px; color:{{ theme.text2 }}; border-bottom:1px solid {{ theme.divider }};">{{ row.other }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section id="gallery" data-screen-label="Gallery" style="margin-top:100px;">
+      <h2 style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:44px; color:{{ theme.text }}; margin:0 0 20px; letter-spacing:0.01em;">GALLERY</h2>
+      <div class="jc-gallery-grid" style="column-count:3; column-gap:20px;">
+        <sc-for list="{{ galleryImages }}" as="img" hint-placeholder-count="8">
+          <div style="break-inside:avoid; margin-bottom:20px; border-radius:20px; overflow:hidden; position:relative;">
+            <img src="{{ img.src }}" alt="{{ img.alt }}" style="{{ img.style }}" />
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <!-- SHOP -->
+    <section id="shop" data-screen-label="Shop" style="margin-top:100px;">
+      <h2 style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:44px; color:{{ theme.text }}; margin:0 0 20px; letter-spacing:0.01em;">SHOP</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:20px;">
+        <sc-for list="{{ shopProducts }}" as="prod" hint-placeholder-count="4">
+          <div style="{{ prod.cardStyle }}">
+            <div style="{{ prod.swatchStyle }}"></div>
+            <div style="font-family:'Manrope', -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:14px; font-weight:600; color:{{ theme.text }}; margin-top:14px;">{{ prod.name }}</div>
+            <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:13px; color:#FF8037; margin-top:4px;">{{ prod.price }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" data-screen-label="Contact" style="margin-top:100px;">
+      <h2 style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:44px; color:{{ theme.text }}; margin:0 0 20px; letter-spacing:0.01em;">CONTACT</h2>
+      <div class="jc-contact-grid" style="display:grid; grid-template-columns:1.2fr 1fr; gap:24px;">
+        <form style="{{ formCardStyle }}" onSubmit="{{ onFormSubmit }}">
+          <label style="display:flex; flex-direction:column; gap:8px; font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; letter-spacing:0.1em; color:{{ theme.text2 }}; text-transform:uppercase;">
+            Name
+            <input type="text" required="true" style="{{ formInputStyle }}" style-focus="border-color:#FF8037;" />
+          </label>
+          <label style="display:flex; flex-direction:column; gap:8px; font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; letter-spacing:0.1em; color:{{ theme.text2 }}; text-transform:uppercase;">
+            Email
+            <input type="email" required="true" style="{{ formInputStyle }}" style-focus="border-color:#FF8037;" />
+          </label>
+          <label style="display:flex; flex-direction:column; gap:8px; font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; letter-spacing:0.1em; color:{{ theme.text2 }}; text-transform:uppercase;">
+            Message
+            <textarea rows="4" required="true" style="{{ formInputStyle }} resize:vertical;" style-focus="border-color:#FF8037;"></textarea>
+          </label>
+          <button type="submit" style="align-self:flex-start; background:#FF8037; color:#0B0B0C; border:none; border-radius:999px; padding:12px 28px; font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:13px; font-weight:600; letter-spacing:0.08em; cursor:pointer;">{{ formStatus }}</button>
+        </form>
+        <div style="{{ infoCardStyle }}">
+          <div>
+            <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; letter-spacing:0.1em; color:{{ theme.text2 }}; text-transform:uppercase;">Email</div>
+            <div style="color:{{ theme.text }}; font-size:15px; margin-top:4px;">info@jcmuaythai.com <span style="color:#FF8037; font-size:11px;">(placeholder)</span></div>
+          </div>
+          <div>
+            <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; letter-spacing:0.1em; color:{{ theme.text2 }}; text-transform:uppercase;">Phone</div>
+            <div style="color:{{ theme.text }}; font-size:15px; margin-top:4px;">(201) 555-0134 <span style="color:#FF8037; font-size:11px;">(placeholder)</span></div>
+          </div>
+          <div>
+            <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; letter-spacing:0.1em; color:{{ theme.text2 }}; text-transform:uppercase;">Instagram</div>
+            <div style="color:{{ theme.text }}; font-size:15px; margin-top:4px;">@jcmuaythai <span style="color:#FF8037; font-size:11px;">(placeholder)</span></div>
+          </div>
+          <div>
+            <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; letter-spacing:0.1em; color:{{ theme.text2 }}; text-transform:uppercase;">Address</div>
+            <div style="color:{{ theme.text }}; font-size:15px; margin-top:4px;">123 Fight St, Jersey City, NJ <span style="color:#FF8037; font-size:11px;">(placeholder)</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer style="{{ footerStyle }}">
+      <div style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:20px; color:{{ theme.text }}; letter-spacing:0.02em;">JC MUAYTHAI</div>
+      <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:12px; color:{{ theme.text2 }};">© 2026 JC MUAYTHAI. Jersey City, NJ.</div>
+    </footer>
+  </main>
+
+  <!-- DRAWER -->
+  <div style="{{ drawerBackdropStyle }}" onClick="{{ closeDrawer }}"></div>
+  <aside id="drawer" class="jc-drawer" style="{{ drawerStyle }}">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <div style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:12px; letter-spacing:0.1em; color:{{ theme.text2 }}; text-transform:uppercase;">Training today?</div>
+      <button onClick="{{ closeDrawer }}" style="background:none; border:none; color:{{ theme.text2 }}; font-size:20px; cursor:pointer; line-height:1;">×</button>
+    </div>
+    <div style="font-family:'Bebas Neue', Impact, 'Arial Narrow', sans-serif; font-size:32px; color:{{ theme.text }}; margin-bottom:24px;">BOOK A CLASS</div>
+    <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;">
+      <sc-for list="{{ dayPickerItems }}" as="d" hint-placeholder-count="6">
+        <button onClick="{{ d.onClick }}" style="{{ d.style }}">{{ d.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <sc-for list="{{ selectedDaySlots }}" as="slot" hint-placeholder-count="3">
+        <div style="{{ slotStyle }}">
+          <span style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:13px; color:{{ theme.text }};">{{ slot.time }}</span>
+          <span style="font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; color:#FF8037; text-transform:uppercase; letter-spacing:0.06em;">{{ slot.level }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </aside>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const ACCENT = '#FF8037';
+const CRIMSON = '#FF2A4B';
+const BONE = '#EDEAE2';
+const ONYX = '#121214';
+
+const THEMES = {
+  dark: { bg:'#0B0B0C', card:'#121214', border:'#3A3733', divider:'#201f1d', text:BONE, text2:'#a8a49c', text3:'#7a766e', text4:'#8a857c', inputBg:'#0B0B0C', navbarBg:'rgba(18,18,20,0.72)', overlayA:'rgba(11,11,12,0.2)', overlayB:'rgba(11,11,12,0.94)', overlayPromo:'rgba(11,11,12,0.95)', swatch1:'#1a1a1c', swatch2:'#202022' },
+  light: { bg:'#F6F1EA', card:'#FFFFFF', border:'#E6DFD2', divider:'#EEE7D9', text:'#1C1712', text2:'#6b6558', text3:'#8c8677', text4:'#a39c8d', inputBg:'#F6F1EA', navbarBg:'rgba(255,255,255,0.78)', overlayA:'rgba(255,255,255,0.15)', overlayB:'rgba(255,255,255,0.93)', overlayPromo:'rgba(255,255,255,0.92)', swatch1:'#EFE8DA', swatch2:'#E4DBC7' }
+};
+
+const RESOURCE_MAP = {
+  'img-hero': 'uploads/photo-1525680996651-0222228be6f0-sm.jpeg',
+  'img-promo': 'uploads/photo-1680022546558-550eaf22351e-sm.jpeg',
+  'img-beginner': 'uploads/photo-1637974013743-82656f7c3f49-sm.jpeg',
+  'img-intermediate': 'uploads/photo-1729673517080-44353fa68fe0-sm.jpeg',
+  'img-advanced': 'uploads/photo-1601039834076-c41cf1766d4b-sm.jpeg',
+  'img-silhouette': 'uploads/photo-1607702713064-0143212236ae-sm.jpeg',
+  'img-gloves': 'uploads/photo-1612179736716-d643f0bdcf4e-sm.jpeg',
+  'img-shadow': 'uploads/photo-1562679452-763edf60a0b7-sm.jpeg'
+};
+function res(id) {
+  if (typeof window !== 'undefined' && window.__resources && window.__resources[id]) return window.__resources[id];
+  return RESOURCE_MAP[id];
+}
+const HERO_IMG = res('img-hero');
+const PROMO_IMG = res('img-promo');
+const CLASS_IMGS = {
+  beginner: res('img-beginner'),
+  intermediate: res('img-intermediate'),
+  advanced: res('img-advanced')
+};
+const GALLERY_IMGS = [
+  { src: res('img-hero'), alt: 'Muay Thai sparring', h: 320 },
+  { src: res('img-intermediate'), alt: 'Pad work training', h: 260 },
+  { src: res('img-silhouette'), alt: 'Fighter silhouette', h: 380 },
+  { src: res('img-gloves'), alt: 'Gloves rack', h: 240 },
+  { src: res('img-advanced'), alt: 'Ring session', h: 300 },
+  { src: res('img-beginner'), alt: 'Solo drills', h: 340 },
+  { src: res('img-promo'), alt: 'Outdoor sparring', h: 280 },
+  { src: res('img-shadow'), alt: 'Shadow boxing', h: 360 }
+];
+
+const ICONS = {
+  home: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7" stroke="CLR" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9" stroke="CLR" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  classes: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="CLR" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="CLR" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="CLR" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="CLR" stroke-width="2"/></svg>',
+  schedule: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="16" rx="3" stroke="CLR" stroke-width="2"/><path d="M4 10h16M8 3v4M16 3v4" stroke="CLR" stroke-width="2" stroke-linecap="round"/></svg>',
+  gallery: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="14" rx="2" stroke="CLR" stroke-width="2"/><circle cx="9" cy="10" r="1.6" fill="CLR"/><path d="M4 16l5-4 4 3 3-3 4 4" stroke="CLR" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  shop: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 8h14l-1 12H6L5 8Z" stroke="CLR" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="CLR" stroke-width="2"/></svg>'
+};
+
+function icon(name, color) { return ICONS[name].replace(/CLR/g, color); }
+
+const SUN_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="${ACCENT}" stroke-width="2"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round"/></svg>`;
+const MOON_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="${ACCENT}" stroke-width="2" stroke-linejoin="round"/></svg>`;
+
+const BEGINNER_DESC = 'Work on heavy bags under the guidance of an experienced coach or train with a partner using focus pads to improve your technique, build your skills, and enhance your cardiovascular fitness. Ideal for those with little or no previous experience in combat sports.';
+const INTERMEDIATE_DESC = 'Train primarily with a partner using Thai pads and protective gear while learning authentic Muay Thai techniques. Develop your skills with punches, kicks, knees, elbows, and clinch work in a safe, supervised environment.';
+const ADVANCED_DESC = 'Push your cardio and endurance to the next level in this 90-minute class, concluding with sparring rounds each session. Refine technique through advanced combinations while developing precision, timing, and fight strategy. Best suited for experienced students and those preparing for competition.';
+
+const SCHEDULE = [
+  { day: 'Mon', beginner: '9–10a · 5–6p', intermediate: '10–11a · 6–7p', advanced: '11a–12:30p · 7–8:30p', other: 'Kids 4–4:45p' },
+  { day: 'Tue', beginner: '9–10a · 5–6p', intermediate: '10–11a · 6–7p', advanced: '11a–12:30p · 7–8:30p', other: '—' },
+  { day: 'Wed', beginner: '9–10a · 5–6p', intermediate: '10–11a · 6–7p', advanced: '11a–12:30p · 7–8:30p', other: 'Kids 4–4:45p' },
+  { day: 'Thu', beginner: '9–10a · 5–6p', intermediate: '10–11a · 6–7p', advanced: '11a–12p · 7–8p', other: 'Kids 4–4:45p' },
+  { day: 'Fri', beginner: '9–10a', intermediate: '10–11a', advanced: '11a–12p', other: 'Open Gym 4–6p' },
+  { day: 'Sat', beginner: '9–10a', intermediate: '10–11a · 6–7p', advanced: '11a–12p · 7–8p', other: 'Kids 1–1:45p' }
+];
+
+const BAR_DATA = [
+  { day: 'Mon', sessions: 7 }, { day: 'Tue', sessions: 6 }, { day: 'Wed', sessions: 7 },
+  { day: 'Thu', sessions: 7 }, { day: 'Fri', sessions: 4 }, { day: 'Sat', sessions: 6 }
+];
+
+const DAY_SLOTS = {
+  Mon: [{ time: '9:00 – 10:00 AM', level: 'Beginner' }, { time: '5:00 – 6:00 PM', level: 'Beginner' }, { time: '10:00 – 11:00 AM', level: 'Intermediate' }, { time: '6:00 – 7:00 PM', level: 'Intermediate' }, { time: '11:00 – 12:30 PM', level: 'Advanced' }, { time: '7:00 – 8:30 PM', level: 'Advanced' }, { time: '4:00 – 4:45 PM', level: 'Kids' }],
+  Tue: [{ time: '9:00 – 10:00 AM', level: 'Beginner' }, { time: '5:00 – 6:00 PM', level: 'Beginner' }, { time: '10:00 – 11:00 AM', level: 'Intermediate' }, { time: '6:00 – 7:00 PM', level: 'Intermediate' }, { time: '11:00 – 12:30 PM', level: 'Advanced' }, { time: '7:00 – 8:30 PM', level: 'Advanced' }],
+  Wed: [{ time: '9:00 – 10:00 AM', level: 'Beginner' }, { time: '5:00 – 6:00 PM', level: 'Beginner' }, { time: '10:00 – 11:00 AM', level: 'Intermediate' }, { time: '6:00 – 7:00 PM', level: 'Intermediate' }, { time: '11:00 – 12:30 PM', level: 'Advanced' }, { time: '7:00 – 8:30 PM', level: 'Advanced' }, { time: '4:00 – 4:45 PM', level: 'Kids' }],
+  Thu: [{ time: '9:00 – 10:00 AM', level: 'Beginner' }, { time: '5:00 – 6:00 PM', level: 'Beginner' }, { time: '10:00 – 11:00 AM', level: 'Intermediate' }, { time: '6:00 – 7:00 PM', level: 'Intermediate' }, { time: '11:00 – 12:00 PM', level: 'Advanced' }, { time: '7:00 – 8:00 PM', level: 'Advanced' }, { time: '4:00 – 4:45 PM', level: 'Kids' }],
+  Fri: [{ time: '9:00 – 10:00 AM', level: 'Beginner' }, { time: '10:00 – 11:00 AM', level: 'Intermediate' }, { time: '11:00 – 12:00 PM', level: 'Advanced' }, { time: '4:00 – 6:00 PM', level: 'Open Gym' }],
+  Sat: [{ time: '9:00 – 10:00 AM', level: 'Beginner' }, { time: '10:00 – 11:00 AM', level: 'Intermediate' }, { time: '6:00 – 7:00 PM', level: 'Intermediate' }, { time: '11:00 – 12:00 PM', level: 'Advanced' }, { time: '7:00 – 8:00 PM', level: 'Advanced' }, { time: '1:00 – 1:45 PM', level: 'Kids' }]
+};
+
+const NAV_META = [
+  { id: 'home', label: 'Home', icon: 'home' },
+  { id: 'classes', label: 'Classes', icon: 'classes' },
+  { id: 'schedule', label: 'Schedule', icon: 'schedule' },
+  { id: 'gallery', label: 'Gallery', icon: 'gallery' },
+  { id: 'shop', label: 'Shop', icon: 'shop' }
+];
+
+class Component extends DCLogic {
+  state = {
+    activeSection: 'home',
+    drawerOpen: false,
+    selectedDay: 'Mon',
+    classTab: 'beginner',
+    searchFocused: false,
+    reducedMotion: false,
+    homeVisible: false,
+    chartVisible: false,
+    formStatus: 'Send Message',
+    cursorX: -100,
+    cursorY: -100,
+    cursorHover: false,
+    hoverEnabled: false,
+    theme: 'dark'
+  };
+
+  componentDidMount() {
+    this.syncThemeVars();
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      this.setState({ reducedMotion: mq.matches, homeVisible: mq.matches, chartVisible: mq.matches });
+    }
+    if (typeof window !== 'undefined' && 'ontouchstart' in window === false) {
+      this.setState({ hoverEnabled: true });
+    }
+    this.observer = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          const id = e.target.id;
+          if (id) this.setState({ activeSection: id });
+        }
+      });
+    }, { rootMargin: '-40% 0px -50% 0px', threshold: 0 });
+    ['home', 'classes', 'schedule', 'gallery', 'shop', 'contact'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) this.observer.observe(el);
+    });
+
+    this.revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          if (e.target === this.homeRef) this.setState({ homeVisible: true });
+          if (e.target === this.chartRef) this.setState({ chartVisible: true });
+        }
+      });
+    }, { threshold: 0.2 });
+    if (this.homeRef) this.revealObserver.observe(this.homeRef);
+    if (this.chartRef) this.revealObserver.observe(this.chartRef);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.theme !== this.state.theme) this.syncThemeVars();
+  }
+
+  componentWillUnmount() {
+    if (this.observer) this.observer.disconnect();
+    if (this.revealObserver) this.revealObserver.disconnect();
+  }
+
+  syncThemeVars = () => {
+    if (typeof document === 'undefined') return;
+    const t = THEMES[this.state.theme] || THEMES.dark;
+    document.documentElement.style.setProperty('--bg', t.bg);
+    document.documentElement.style.setProperty('--text', t.text);
+    document.documentElement.style.setProperty('--border', t.border);
+  };
+
+  setHomeRef = (el) => {
+    this.homeRef = el;
+    if (el && this.revealObserver) this.revealObserver.observe(el);
+  };
+  setChartRef = (el) => {
+    this.chartRef = el;
+    if (el && this.revealObserver) this.revealObserver.observe(el);
+  };
+
+  onCursorMove = (e) => {
+    if (!this.state.hoverEnabled) return;
+    const hover = !!(e.target.closest && e.target.closest('a,button,[data-hover]'));
+    this.setState({ cursorX: e.clientX, cursorY: e.clientY, cursorHover: hover });
+  };
+
+  onCardMove = (e) => {
+    const el = e.currentTarget;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    const rx = (0.5 - py) * 14;
+    const ry = (px - 0.5) * 14;
+    el.style.transition = 'transform .06s linear';
+    el.style.transform = `perspective(1600px) rotateX(${rx}deg) rotateY(${ry}deg) scale3d(1.02,1.02,1.02)`;
+  };
+  onCardLeave = (e) => {
+    const el = e.currentTarget;
+    el.style.transition = 'transform .5s cubic-bezier(.16,1,.3,1)';
+    el.style.transform = 'perspective(1600px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)';
+  };
+
+  openDrawer = (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ drawerOpen: true }); };
+  closeDrawer = () => this.setState({ drawerOpen: false });
+  selectDay = (day) => this.setState({ selectedDay: day });
+  selectClassTab = (tab) => this.setState({ classTab: tab });
+  onSearchFocus = () => this.setState({ searchFocused: true });
+  onSearchBlur = () => this.setState({ searchFocused: false });
+  toggleTheme = () => this.setState((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' }));
+  onFormSubmit = (e) => {
+    e.preventDefault();
+    this.setState({ formStatus: 'Message Sent ✓' });
+    setTimeout(() => this.setState({ formStatus: 'Send Message' }), 2400);
+  };
+
+  renderVals() {
+    const s = this.state;
+    const theme = THEMES[s.theme] || THEMES.dark;
+    const todayIdx = new Date().getDay(); // 0 Sun .. 6 Sat
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const todayName = dayNames[todayIdx];
+    const hour = new Date().getHours();
+    const isActiveSessionNow = (hour >= 9 && hour < 11) || (hour >= 17 && hour < 19);
+
+    const navItems = NAV_META.map((n) => {
+      const active = s.activeSection === n.id;
+      return {
+        id: n.id,
+        href: '#' + n.id,
+        label: n.label,
+        iconHtml: { __html: icon(n.icon, active ? ACCENT : ONYX) },
+        iconHtmlMobile: { __html: icon(n.icon, active ? ACCENT : theme.text4) },
+        iconWrapStyle: 'display:flex;align-items:center;justify-content:center;width:100%;height:100%;',
+        style: `width:48px;height:48px;border-radius:${active ? '14px' : '50%'};display:flex;align-items:center;justify-content:center;background:${active ? ONYX : 'transparent'};transition:all .2s ease;flex-shrink:0;`,
+        mobileColor: active ? ACCENT : theme.text4,
+        tabColor: active ? theme.text : theme.text3,
+        tabBorder: active ? ACCENT : 'transparent'
+      };
+    });
+
+    const heroLevels = ['beginner', 'intermediate', 'advanced'].map((lvl) => ({
+      id: lvl,
+      href: '#classes',
+      iconHtml: { __html: icon('classes', ACCENT).replace('20" height="20"', '16" height="16"') },
+      ringStyle: 'position:absolute;inset:-3px;border-radius:50%;border:1.5px solid transparent;',
+      btnStyle: `width:48px;height:48px;border-radius:50%;background:${theme.inputBg};border:1px solid ${theme.border};display:flex;align-items:center;justify-content:center;position:relative;`,
+      onEnter: (e) => { e.currentTarget.style.borderColor = ACCENT; },
+      onLeave: (e) => { e.currentTarget.style.borderColor = 'transparent'; }
+    }));
+
+    const classesData = [
+      { id: 'beginner', num: '01', title: 'Beginners', desc: BEGINNER_DESC, img: CLASS_IMGS.beginner },
+      { id: 'intermediate', num: '02', title: 'Intermediate', desc: INTERMEDIATE_DESC, img: CLASS_IMGS.intermediate },
+      { id: 'advanced', num: '03', title: 'Advanced', desc: ADVANCED_DESC, img: CLASS_IMGS.advanced }
+    ].map((c) => ({
+      ...c,
+      cardStyle: `position:relative;border-radius:24px;overflow:hidden;min-height:420px;background:${theme.card};border:1px solid ${theme.border};transition:transform .25s ease, box-shadow .25s ease;`,
+      overlayStyle: `position:absolute;inset:0;background:linear-gradient(180deg, ${theme.overlayA} 0%, ${theme.overlayB} 78%);`
+    }));
+
+    const classTabs = ['beginner', 'intermediate', 'advanced'].map((t) => ({
+      id: t,
+      label: t.toUpperCase(),
+      onClick: () => this.selectClassTab(t),
+      style: `background:none;border:none;font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace;font-size:12px;letter-spacing:0.1em;padding-bottom:6px;cursor:pointer;color:${s.classTab === t ? theme.text : theme.text3};border-bottom:2px solid ${s.classTab === t ? ACCENT : 'transparent'};`
+    }));
+
+    const maxSessions = Math.max(...BAR_DATA.map((b) => b.sessions));
+    const barData = BAR_DATA.map((b) => {
+      const isToday = b.day === todayName;
+      const pct = (b.sessions / maxSessions) * 100;
+      const height = s.chartVisible ? `${pct}%` : '0%';
+      return {
+        day: b.day,
+        sessions: b.sessions,
+        style: `width:100%; max-width:34px; height:${height}; border-radius:8px 8px 0 0; background:${isToday ? CRIMSON : ACCENT}; transition:height 1s cubic-bezier(.16,1,.3,1);`,
+        labelColor: isToday ? CRIMSON : theme.text2
+      };
+    });
+
+    const scheduleRows = SCHEDULE.map((r) => ({
+      ...r,
+      onClick: () => { this.selectDay(r.day); this.openDrawer(); }
+    }));
+
+    const dayPickerItems = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => ({
+      label: d,
+      onClick: () => this.selectDay(d),
+      style: `padding:8px 16px;border-radius:999px;border:1px solid ${s.selectedDay === d ? ACCENT : theme.border};background:${s.selectedDay === d ? ACCENT : 'transparent'};color:${s.selectedDay === d ? '#0B0B0C' : theme.text};font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace;font-size:12px;font-weight:600;cursor:pointer;`
+    }));
+
+    const selectedDaySlots = DAY_SLOTS[s.selectedDay] || [];
+
+    const galleryImages = GALLERY_IMGS.map((g) => ({
+      src: g.src,
+      alt: g.alt,
+      style: `width:100%;height:${g.h}px;object-fit:cover;display:block;filter:saturate(0.9) contrast(1.05);transition:transform .5s ease, filter .5s ease;`
+    }));
+
+    const shopProducts = [
+      { name: 'Classic Hand Wraps', price: '$18', hue: 0 },
+      { name: 'Thai Shorts', price: '$45', hue: 1 },
+      { name: 'Focus Mitts', price: '$60', hue: 2 },
+      { name: 'JC Muaythai Tee', price: '$32', hue: 3 }
+    ].map((p) => ({
+      ...p,
+      cardStyle: `background:${theme.card};border:1px solid ${theme.border};border-radius:20px;padding:20px;`,
+      swatchStyle: `width:100%;height:120px;border-radius:12px;background:repeating-linear-gradient(135deg, ${theme.swatch1}, ${theme.swatch1} 10px, ${theme.swatch2} 10px, ${theme.swatch2} 20px);display:flex;align-items:center;justify-content:center;`
+    }));
+
+    const bentoTransition = (delay) => s.reducedMotion
+      ? ''
+      : `opacity:${s.homeVisible ? 1 : 0};transform:translateY(${s.homeVisible ? 0 : 32}px);transition:opacity .6s ease ${delay}ms, transform .6s cubic-bezier(.16,1,.3,1) ${delay}ms;`;
+
+    const cardBase = `background-color:${theme.card};border:1px solid ${theme.border};border-radius:24px;padding:32px;position:relative;overflow:hidden;transform-style:preserve-3d;will-change:transform;`;
+    const cardShell = `border:1px solid ${theme.border};border-radius:24px;padding:32px;position:relative;overflow:hidden;transform-style:preserve-3d;will-change:transform;`;
+
+    return {
+      theme,
+      navItems,
+      openSpots: 3,
+      pageWrapStyle: `position:relative; background:${theme.bg}; min-height:100vh; overflow-x:hidden; transition:background .3s ease;`,
+      cursorStyle: s.hoverEnabled
+        ? `position:fixed;top:${s.cursorY}px;left:${s.cursorX}px;width:${s.cursorHover ? 14 : 26}px;height:${s.cursorHover ? 14 : 26}px;border:1.5px solid ${ACCENT};border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);z-index:100;transition:width .15s ease,height .15s ease,background .15s ease;background:${s.cursorHover ? ACCENT : 'transparent'};mix-blend-mode:difference;`
+        : 'display:none;',
+      onCursorMove: this.onCursorMove,
+      onCardMove: this.onCardMove,
+      onCardLeave: this.onCardLeave,
+      openDrawer: this.openDrawer,
+      closeDrawer: this.closeDrawer,
+      toggleTheme: this.toggleTheme,
+      themeToggleStyle: `width:52px;height:52px;border-radius:50%;background:${theme.card};border:1px solid ${theme.border};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s ease;`,
+      themeToggleIcon: { __html: s.theme === 'dark' ? SUN_SVG : MOON_SVG },
+      mobileNavStyle: `display:none; position:fixed; bottom:0; left:0; right:0; background:${theme.card}; border-top:1px solid ${theme.border}; z-index:50; padding:10px 12px; justify-content:space-around; align-items:center;`,
+      navbarStyle: `position:fixed; top:24px; left:124px; right:24px; height:64px; background:${theme.navbarBg}; backdrop-filter:blur(14px); border-radius:32px; border:1px solid ${theme.border}; display:flex; align-items:center; justify-content:space-between; padding:0 10px 0 26px; z-index:35;`,
+      searchPillStyle: `display:flex;align-items:center;gap:10px;background:${theme.inputBg};border:1px solid ${s.searchFocused ? ACCENT : theme.border};border-radius:999px;padding:10px 18px;width:280px;transition:all .2s ease;box-shadow:${s.searchFocused ? '0 0 0 3px rgba(255,122,41,0.15)' : 'none'};`,
+      searchInputStyle: `background:transparent; border:none; outline:none; color:${theme.text}; font-family:'Manrope', -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:13px; width:100%;`,
+      onSearchFocus: this.onSearchFocus,
+      onSearchBlur: this.onSearchBlur,
+      bentoGridStyle: `display:grid;grid-template-columns:1.3fr 1fr 1fr;grid-template-rows:repeat(3,minmax(150px,1fr));gap:18px;height:100%;perspective:1600px;`,
+      heroCardStyle: `${cardShell}grid-column:1;grid-row:1 / span 3;display:flex;align-items:center;padding:clamp(20px,3vw,40px);background:url('${HERO_IMG}') center/cover;overflow:hidden;${bentoTransition(0)}`,
+      heroOverlayStyle: `position:absolute; inset:0; z-index:1; background:linear-gradient(180deg, ${theme.overlayA} 0%, ${theme.overlayB} 78%);`,
+      statCardStyle: `${cardBase}grid-row:1;display:flex;flex-direction:column;justify-content:center;padding:clamp(16px,2vw,28px);${bentoTransition(80)}`,
+      promoCardStyle: `${cardBase}grid-column:2 / span 2;grid-row:2;padding:0;overflow:hidden;${bentoTransition(160)}`,
+      promoOverlayStyle: `position:absolute; inset:0; background:linear-gradient(100deg, ${theme.overlayPromo} 20%, rgba(255,122,41,0.35) 100%);`,
+      promoBadgeStyle: `position:absolute; top:14px; right:18px; z-index:2; background:${theme.card}; border:1px solid ${theme.border}; border-radius:14px; padding:6px 14px; font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace; font-size:11px; color:#FF8037;`,
+      chartCardStyle: `${cardBase}grid-column:2 / span 2;grid-row:3;display:flex;flex-direction:column;justify-content:center;padding:clamp(16px,2vw,28px);${bentoTransition(240)}`,
+      setHomeRef: this.setHomeRef,
+      setChartRef: this.setChartRef,
+      heroLevels,
+      ropeLineStyle: `stroke-dasharray:300;stroke-dashoffset:${s.homeVisible ? 0 : 300};transition:stroke-dashoffset 1.4s ease .3s;`,
+      ropeLineStyle2: `stroke-dasharray:300;stroke-dashoffset:${s.homeVisible ? 0 : 300};transition:stroke-dashoffset 1.4s ease .5s;`,
+      isActiveSessionNow,
+      promoImg: PROMO_IMG,
+      barData,
+      classTabs,
+      classesData,
+      tickerStyle: `overflow:hidden; background:${theme.card}; border:1px solid ${theme.border}; border-radius:24px; padding:14px 0; margin-bottom:24px;`,
+      tableWrapStyle: `background:${theme.card}; border:1px solid ${theme.border}; border-radius:24px; padding:32px; overflow-x:auto;`,
+      scheduleRows,
+      dayPickerItems,
+      selectedDaySlots,
+      slotStyle: `background:${theme.inputBg}; border:1px solid ${theme.border}; border-radius:14px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center;`,
+      galleryImages,
+      shopProducts,
+      formCardStyle: `background:${theme.card}; border:1px solid ${theme.border}; border-radius:24px; padding:32px; display:flex; flex-direction:column; gap:18px;`,
+      formInputStyle: `background:${theme.inputBg}; border:1px solid ${theme.border}; border-radius:10px; padding:12px 14px; color:${theme.text}; font-family:'Manrope', -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:14px; outline:none;`,
+      infoCardStyle: `background:${theme.card}; border:1px solid ${theme.border}; border-radius:24px; padding:32px; display:flex; flex-direction:column; gap:20px; font-family:'Manrope', -apple-system, 'Segoe UI', Roboto, sans-serif;`,
+      footerStyle: `margin-top:100px; padding-top:28px; border-top:1px solid ${theme.border}; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;`,
+      onFormSubmit: this.onFormSubmit,
+      formStatus: s.formStatus,
+      drawerOpen: s.drawerOpen,
+      drawerBackdropStyle: `position:fixed;inset:0;background:rgba(0,0,0,${s.drawerOpen ? 0.55 : 0});pointer-events:${s.drawerOpen ? 'auto' : 'none'};transition:background .3s ease;z-index:45;`,
+      drawerStyle: `position:fixed;top:0;bottom:0;right:0;width:380px;max-width:90vw;background:${theme.card};border-left:1px solid ${theme.border};z-index:46;padding:32px;transform:translateX(${s.drawerOpen ? '0' : '100%'});transition:transform .3s ease, background .3s ease;overflow-y:auto;`
+    };
+  }
+}
+
+</script>
+</body>
 </html>
