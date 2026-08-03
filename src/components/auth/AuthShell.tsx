@@ -13,8 +13,15 @@ type AuthShellProps = {
 
 /**
  * Split layout shared by every auth screen: photographic panel on the left,
- * form on the right. Below 900px the photo collapses to a compact banner so
- * the form stays above the fold on a phone.
+ * form on the right.
+ *
+ * Below 1024px the photo panel is dropped entirely — not scaled down — and a
+ * compact brand lockup takes its place, so the form starts at the top of the
+ * viewport on a phone rather than below a decorative image.
+ *
+ * Column ratio and padding both step up at xl. At lg with the wider ratio the
+ * form column computed narrower than the single-column layout it replaces,
+ * which made the form visibly shrink as the window grew past 1024px.
  */
 export function AuthShell({
   eyebrow,
@@ -24,7 +31,7 @@ export function AuthShell({
   footer,
 }: AuthShellProps) {
   return (
-    <main className="min-h-dvh lg:grid lg:grid-cols-[1.1fr_1fr]">
+    <main className="min-h-dvh lg:grid lg:grid-cols-[1fr_1fr] xl:grid-cols-[1.1fr_1fr]">
       {/* Photographic panel */}
       <div className="relative isolate hidden overflow-hidden lg:block">
         <Image
@@ -77,9 +84,33 @@ export function AuthShell({
         </div>
       </div>
 
-      {/* Form panel */}
-      <div className="flex flex-col justify-center px-5 py-10 sm:px-10 lg:px-14">
-        <div className="mx-auto w-full max-w-md">
+      {/*
+        Form panel. Below lg the same hero photograph sits behind it as a
+        full-bleed background; at lg and above it moves to its own column
+        and this panel reverts to a plain themed surface.
+      */}
+      <div className="auth-on-photo relative flex min-h-dvh flex-col justify-center px-5 py-10 sm:px-10 lg:min-h-0 lg:px-10 xl:px-14">
+        {/*
+          sizes resolves to 0px at lg and above, so desktop browsers pick the
+          smallest srcset candidate for this hidden copy instead of fetching
+          the full-width image twice.
+        */}
+        <Image
+          src="/images/hero.jpeg"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1023px) 100vw, 0px"
+          className="object-cover lg:hidden"
+        />
+        {/* Scrim carrying the text contrast. Strongest at top and bottom,
+            where the brand lockup and the terms copy sit. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-linear-to-b from-[rgb(11_11_12/0.92)] via-[rgb(11_11_12/0.85)] to-[rgb(11_11_12/0.95)] lg:hidden"
+        />
+
+        <div className="relative z-10 mx-auto w-full max-w-md">
           {/* Compact brand lockup, shown only when the photo panel is hidden */}
           <Link
             href="/"

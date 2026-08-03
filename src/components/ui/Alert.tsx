@@ -16,7 +16,7 @@ export function Alert({ tone, children }: AlertProps) {
       // so a screen reader should interrupt rather than queue.
       role="alert"
       aria-live="assertive"
-      className={`rounded-[14px] border px-4 py-3 text-sm leading-relaxed ${TONE_CLASSES[tone]}`}
+      className={`rounded-[14px] border px-4 py-3 text-sm leading-relaxed backdrop-blur-sm ${TONE_CLASSES[tone]}`}
     >
       {children}
     </div>

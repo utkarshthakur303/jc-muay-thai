@@ -54,7 +54,7 @@ export function TextField({
           defaultValue={defaultValue}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className={`w-full rounded-[10px] border bg-input-bg px-3.5 py-3 text-sm text-text outline-none transition-colors placeholder:text-text-3 focus:border-accent ${
+          className={`w-full rounded-[10px] border bg-input-bg px-3.5 py-3 backdrop-blur-sm text-sm text-text outline-none transition-colors placeholder:text-text-3 focus:border-accent ${
             isPassword ? "pr-20" : ""
           } ${error ? "border-crimson" : "border-border"}`}
         />

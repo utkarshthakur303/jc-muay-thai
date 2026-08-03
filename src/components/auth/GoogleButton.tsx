@@ -12,7 +12,7 @@ function GoogleButtonInner({ label }: { label: string }) {
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="flex min-h-12 w-full items-center justify-center gap-3 rounded-full border border-border bg-card px-7 text-sm font-medium text-text transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex min-h-12 w-full items-center justify-center gap-3 rounded-full border border-border bg-card px-7 text-sm backdrop-blur-sm font-medium text-text transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-60"
     >
       {/* Google's brand mark must keep its official colours — recolouring it
           breaks their branding guidelines for sign-in buttons. */}

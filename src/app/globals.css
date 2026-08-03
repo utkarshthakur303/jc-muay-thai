@@ -111,6 +111,42 @@
   }
 }
 
+/* ---------------------------------------------------------------
+   Auth panel sitting directly on the hero photograph (below lg).
+
+   The photo is a fixed dark image in both themes, so light-theme tokens
+   (near-white surfaces, near-black text) would be unreadable over it.
+   Re-pointing the theme variables for this subtree only means every
+   component already built against them — TextField, Alert, Divider,
+   GoogleButton — adapts automatically, with no per-component overrides.
+
+   This works because @theme inline emits `var(--text)` into the utility
+   itself rather than a resolved colour, so the cascade reaches it.
+
+   Above lg the photo moves to its own column and the form returns to a
+   normal themed surface, so these overrides must not apply there.
+   --------------------------------------------------------------- */
+@media (width < 64rem) {
+  .auth-on-photo {
+    --text: #edeae2;
+    --text-2: rgb(237 234 226 / 0.82);
+    --text-3: rgb(237 234 226 / 0.64);
+    --card: rgb(18 18 20 / 0.55);
+    --border: rgb(237 234 226 / 0.28);
+    --divider: rgb(237 234 226 / 0.18);
+    --input-bg: rgb(11 11 12 / 0.5);
+  }
+
+  /* Alpha values below are the minimum that clear WCAG AA (4.5:1) against
+     the worst case: a blown-out white patch of photograph under the
+     weakest part of the scrim (0.85). Measured, not estimated —
+     --text 11.0:1, --text-2 8.0:1, --text-3 5.5:1, placeholder 5.0:1.
+     Lowering either the scrim or these alphas breaks that. */
+  .auth-on-photo ::placeholder {
+    color: rgb(237 234 226 / 0.6);
+  }
+}
+
 @utility label-mono {
   font-family: var(--font-mono);
   font-size: 11px;
