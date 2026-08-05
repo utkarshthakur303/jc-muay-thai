@@ -5,8 +5,8 @@ type AlertProps = {
 
 const TONE_CLASSES: Record<AlertProps["tone"], string> = {
   error: "border-crimson/40 bg-crimson/10 text-crimson",
-  success: "border-accent/40 bg-accent/10 text-accent",
-  warning: "border-accent/40 bg-accent/10 text-accent",
+  success: "border-accent/40 bg-accent/10 text-accent-strong",
+  warning: "border-accent/40 bg-accent/10 text-accent-strong",
 };
 
 export function Alert({ tone, children }: AlertProps) {

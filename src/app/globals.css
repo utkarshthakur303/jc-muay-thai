@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
+/* ===============================================================
+   SINGLE SOURCE OF TRUTH FOR COLOUR, TYPE AND MOTION.
+
+   Rule enforced across the codebase: no component may contain a
+   colour literal, a font-family, or a keyframe. If a component needs
+   one, it gets a token here first. That is what makes a rebrand a
+   change to this file rather than a search-and-replace.
+
+   Three layers, in order:
+     1. Brand constants   — identical in every theme.
+     2. Theme surfaces    — swapped by <html data-theme>.
+     3. @theme inline     — publishes both to Tailwind utilities.
+   =============================================================== */
+
 /* ---------------------------------------------------------------
-   Design tokens — lifted verbatim from the approved JC Muaythai
-   mockup (THEMES.dark / THEMES.light in the original .dc.html).
-   Do not invent new colours; extend this block instead.
+   1. BRAND CONSTANTS
+   Values lifted verbatim from the approved JC Muaythai mockup.
    --------------------------------------------------------------- */
 @theme {
   --color-accent: #ff8037;
   --color-accent-hover: #ff9557;
   --color-crimson: #ff2a4b;
 
-  --font-display: var(--font-bebas), Impact, "Arial Narrow", sans-serif;
-  --font-body: var(--font-manrope), -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: var(--font-plex-mono), "SF Mono", Consolas, monospace;
+  /* Ink — anything drawn ON an accent surface. Named for its role so
+     that changing the accent to a light colour is a two-line edit
+     here, not a hunt for every `text-[#0B0B0C]` in the tree. */
+  --color-ink: #0b0b0c;
+
+  /* On-photo — text and icons sitting over a photograph. Photographs
+     are dark in BOTH themes (they are content, not surfaces), so
+     these must not follow the theme or light mode becomes unreadable
+     over bright patches of the image. */
+  --color-on-photo: #edeae2;
+  --color-on-photo-2: rgb(237 234 226 / 0.82);
+  --color-on-photo-3: rgb(237 234 226 / 0.64);
+
+  /* Scrim over a photograph. Theme-independent for the same reason.
+     Used where content sits at both ends of the image (the auth panel
+     has a logo at the top and copy at the bottom), so it starts dark
+     enough to carry text immediately. */
+  --scrim-photo: linear-gradient(
+    180deg,
+    rgb(11 11 12 / 0.28) 0%,
+    rgb(11 11 12 / 0.92) 78%
+  );
+
+  /* Bottom-weighted variant for the hero card, whose content is a
+     single block anchored to the bottom.
+
+     The alphas are set by the hardest case on the page: the accent
+     eyebrow. Accent on a blown-out white patch of photograph needs the
+     scrim at 0.82 or higher to clear 4.5:1 — at the mockup's mid-card
+     0.58 it measures 1.96:1, which is why the mockup needed a stack of
+     text-shadows to look passable. Anchoring the copy low and taking
+     the scrim to 0.90+ underneath it gets accent to 6.3:1 and body
+     copy to 9.2:1 with no shadows, and leaves the top half of the
+     photograph clean instead of veiling the whole card. */
+  --scrim-hero: linear-gradient(
+    180deg,
+    rgb(11 11 12 / 0) 0%,
+    rgb(11 11 12 / 0.35) 30%,
+    rgb(11 11 12 / 0.9) 62%,
+    rgb(11 11 12 / 0.97) 100%
+  );
+
+  --font-display: var(--font-display-src), Impact, "Arial Narrow", sans-serif;
+  --font-body: var(--font-body-src), -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-mono-src), "SF Mono", Consolas, monospace;
 
   --radius-card: 24px;
   --radius-field: 10px;
+
+  /* Elevation. Fixed black rather than theme-derived: a shadow is cast
+     light, not a surface, and a "light-mode shadow" tinted toward the
+     cream background reads as a smudge. */
+  --shadow-rail: 0 20px 60px rgb(0 0 0 / 0.45);
+  --shadow-float: 0 20px 50px rgb(0 0 0 / 0.4);
+  --shadow-hero: 0 28px 70px rgb(0 0 0 / 0.4);
+  /* Cast by a card under the pointer. Softer and closer than the fixed
+     elevations above — a hover response, not a change of layer. */
+  --shadow-lift: 0 16px 38px rgb(0 0 0 / 0.26);
+
+  /* Layout constants. Here rather than inlined in components so the
+     content width and the rail's footprint cannot drift apart — the
+     top bar's left offset and <main>'s left padding must both equal
+     the rail's total width or the bar sits over it. */
+  --layout-max-width: 90rem; /* 1440px */
+  --layout-rail-offset: 8.5rem; /* 24px gutter + 88px rail + 24px gutter */
+
+  /* Shared easing. One curve for the whole site keeps motion coherent. */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Theme-dependent surfaces are CSS variables so a single `data-theme`
-   attribute on <html> flips the entire site, exactly as the mockup's
-   toggleTheme() did. */
+/* ---------------------------------------------------------------
+   2. THEME SURFACES
+   Plain CSS variables (not @theme) because they must be reassignable
+   per-subtree by the cascade — see .on-photo below.
+   --------------------------------------------------------------- */
 :root,
 :root[data-theme="dark"] {
   --bg: #0b0b0c;
@@ -31,7 +108,32 @@
   --text-2: #a8a49c;
   --text-3: #7a766e;
   --input-bg: #0b0b0c;
-  --navbar-bg: rgb(18 18 20 / 0.72);
+  --surface-nav: rgb(18 18 20 / 0.72);
+
+  /* Accent used as TEXT or as an icon on a themed surface.
+     Identical to the brand accent here — orange on near-black is 7.5:1. */
+  --accent-strong: #ff8037;
+
+  /* Scrim over a photo inside a themed card: the card's own text sits
+     on it, so it resolves toward the theme background.
+
+     The top stop was 0.2. The class cards start their text at the top of
+     the card, which is exactly where the scrim was weakest — the level
+     number over a busy patch of photograph measured 3.28:1 here and
+     1.45:1 in light mode, which is not a faint colour so much as an
+     absent one. Opening at 0.62/0.72 backs the whole text column
+     instead of only its lower half. */
+  --scrim-card: linear-gradient(
+    180deg,
+    rgb(11 11 12 / 0.62) 0%,
+    rgb(11 11 12 / 0.94) 78%
+  );
+  --scrim-promo: linear-gradient(
+    100deg,
+    rgb(11 11 12 / 0.95) 20%,
+    rgb(255 128 55 / 0.35) 100%
+  );
+
   color-scheme: dark;
 }
 
@@ -44,10 +146,46 @@
   --text-2: #6b6558;
   --text-3: #8c8677;
   --input-bg: #f6f1ea;
-  --navbar-bg: rgb(255 255 255 / 0.78);
+  --surface-nav: rgb(255 255 255 / 0.78);
+
+  /* The brand orange has a relative luminance of 0.37. Against a white
+     card it can reach 2.5:1 and no further — there is no arrangement of
+     this hue at this lightness that clears 4.5:1 on a light surface. So
+     every accent-coloured word and icon on a themed surface in light
+     mode was failing AA: the schedule notice at 2.07:1, the contact link
+     and the weekly total at 2.50:1, the class-card numbers at 2.11:1.
+     Measured, not estimated.
+
+     This is the same hue taken down to a luminance that clears it —
+     6.1:1 on white, 5.1:1 on the tinted notice. The brand accent itself
+     is untouched: fills, borders, the rail, the buttons and everything
+     over a photograph all still use --color-accent, and dark mode is not
+     affected at all because the two values are identical there. */
+  --accent-strong: #a8410c;
+
+  /* See the dark-theme note above — same fix, and light mode needs more
+     of it because a light scrim over a dark photograph converges slowly. */
+  --scrim-card: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.72) 0%,
+    rgb(255 255 255 / 0.95) 78%
+  );
+  --scrim-promo: linear-gradient(
+    100deg,
+    rgb(255 255 255 / 0.92) 20%,
+    rgb(255 128 55 / 0.35) 100%
+  );
+
   color-scheme: light;
 }
 
+/* ---------------------------------------------------------------
+   3. PUBLISH TO TAILWIND
+   `@theme inline` emits `var(--text)` into the utility itself rather
+   than the resolved colour. That is what lets a scoped override (the
+   .on-photo block below) reach every component built on these
+   utilities without any per-component special-casing.
+   --------------------------------------------------------------- */
 @theme inline {
   --color-bg: var(--bg);
   --color-card: var(--card);
@@ -57,6 +195,8 @@
   --color-text-2: var(--text-2);
   --color-text-3: var(--text-3);
   --color-input-bg: var(--input-bg);
+  --color-surface-nav: var(--surface-nav);
+  --color-accent-strong: var(--accent-strong);
 }
 
 @layer base {
@@ -76,9 +216,15 @@
     transition: background 0.3s ease;
   }
 
+  /* Anchor targets must clear the fixed top bar, or a jump to #classes
+     lands with the heading hidden behind it. */
+  [id] {
+    scroll-margin-top: 7rem;
+  }
+
   ::selection {
     background: var(--color-accent);
-    color: #0b0b0c;
+    color: var(--color-ink);
   }
 
   ::-webkit-scrollbar {
@@ -104,6 +250,10 @@
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      /* Delay must be zeroed too. Without this, a staggered entrance
+         still holds its `both` start state for the full delay — the
+         user waits out the stagger staring at invisible content. */
+      animation-delay: 0ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
@@ -112,19 +262,14 @@
 }
 
 /* ---------------------------------------------------------------
-   Auth panel sitting directly on the hero photograph (below lg).
+   SCOPED THEME OVERRIDE: content sitting directly on a photograph.
 
-   The photo is a fixed dark image in both themes, so light-theme tokens
-   (near-white surfaces, near-black text) would be unreadable over it.
-   Re-pointing the theme variables for this subtree only means every
-   component already built against them — TextField, Alert, Divider,
-   GoogleButton — adapts automatically, with no per-component overrides.
+   Re-points the theme variables for one subtree, so every component
+   already built against them — TextField, Alert, Divider, buttons —
+   adapts with no per-component overrides.
 
-   This works because @theme inline emits `var(--text)` into the utility
-   itself rather than a resolved colour, so the cascade reaches it.
-
-   Above lg the photo moves to its own column and the form returns to a
-   normal themed surface, so these overrides must not apply there.
+   Used by the auth panel below lg, where the hero photo is the page
+   background in both themes.
    --------------------------------------------------------------- */
 @media (width < 64rem) {
   .auth-on-photo {
@@ -137,20 +282,380 @@
     --input-bg: rgb(11 11 12 / 0.5);
   }
 
-  /* Alpha values below are the minimum that clear WCAG AA (4.5:1) against
-     the worst case: a blown-out white patch of photograph under the
-     weakest part of the scrim (0.85). Measured, not estimated —
-     --text 11.0:1, --text-2 8.0:1, --text-3 5.5:1, placeholder 5.0:1.
-     Lowering either the scrim or these alphas breaks that. */
+  /* Alpha values below are the minimum that clear WCAG AA (4.5:1)
+     against the worst case: a blown-out white patch of photograph
+     under the weakest part of the scrim (0.85). Measured, not
+     estimated — --text 11.0:1, --text-2 8.0:1, --text-3 5.5:1,
+     placeholder 5.0:1. Lowering either the scrim or these breaks it. */
   .auth-on-photo ::placeholder {
     color: rgb(237 234 226 / 0.6);
   }
 }
 
+/* ---------------------------------------------------------------
+   SCOPED THEME OVERRIDE: copy over a dimmed photograph inside a
+   themed card — the class cards and the promo tile.
+
+   Same mechanism as .auth-on-photo above, and it exists for a measured
+   failure, not a hunch. The muted tones are chosen against a flat card;
+   a photograph showing through turns a white surface into a mid grey,
+   and --text-2 (#6b6558) over that measured 4.05:1 on the class cards
+   and 3.88:1 on the promo tile — both under the 4.5:1 floor, and both
+   true before any hover existed. The hover reveal then took the class
+   cards to 3.24:1.
+
+   Re-pointing the variables rather than restyling the components means
+   every muted utility inside them is corrected at once, including ones
+   added later that would otherwise reintroduce the same bug.
+
+   Measured against the worst composited pixel under the inked extent of
+   the text, at the hovered opacity, in both themes.
+   --------------------------------------------------------------- */
+:root .copy-on-photo,
+:root[data-theme="dark"] .copy-on-photo {
+  --text-2: #cbc7bf;
+  --text-3: #b3afa7;
+}
+
+:root[data-theme="light"] .copy-on-photo {
+  --text-2: #4a4640;
+  --text-3: #5c574f;
+}
+
+/* ---------------------------------------------------------------
+   SURFACES
+   The card treatment appears on every bento tile and every class
+   card. One definition so a change to the radius or the border
+   weight reaches all of them.
+   --------------------------------------------------------------- */
+@utility card-surface {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+}
+
+/* Same geometry, but the fill is a photograph rather than a themed
+   surface. `isolate` gives the scrim and the image a stacking context
+   of their own, so a negative z-index on them cannot punch through to
+   whatever sits behind the card. */
+@utility card-photo {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  isolation: isolate;
+  position: relative;
+}
+
+/* ---------------------------------------------------------------
+   HOVER
+
+   One language for the whole page, defined once:
+
+     1. the border warms toward the accent;
+     2. a soft shadow appears beneath the card;
+     3. on a photo card, the photograph gains presence.
+
+   Three rules govern all of it.
+
+   EVERY hover is inside `(hover: hover) and (pointer: fine)`. This is not
+   an optimisation. A touch browser fires :hover on tap and leaves it
+   applied until you tap somewhere else, so an ungated hover means a card
+   a phone user touched stays lit for as long as they keep reading — the
+   effect is not just useless there, it is wrong.
+
+   NOTHING here translates the element. A card that lifts and follows the
+   pointer reads as a button, and none of these cards are clickable. The
+   surface responds; it does not offer. The mockup's clickable schedule
+   rows were removed for promising a click that did nothing, and a hover
+   that re-implies one would put the promise straight back.
+
+   The accent is mixed in rather than named, so a brand colour change in
+   the block at the top of this file carries through every hover state on
+   the site without a single edit down here.
+
+   Reduced motion needs no special case: the base layer already collapses
+   every transition to 0.01ms, which leaves the colour and shadow change
+   intact and instant. Removing motion is not the same as removing
+   feedback.
+   --------------------------------------------------------------- */
+@utility card-hover {
+  transition:
+    border-color 0.35s var(--ease-out-expo),
+    box-shadow 0.35s var(--ease-out-expo);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      border-color: color-mix(in oklab, var(--color-accent) 55%, var(--border));
+      box-shadow: var(--shadow-lift);
+    }
+  }
+}
+
+/* A photograph that grows very slightly inside a fixed frame. The frame
+   clips, so the layout box never changes and the surrounding masonry
+   cannot reflow mid-transition — the scale is compositor-only. */
+@utility photo-frame {
+  overflow: hidden;
+
+  & img {
+    transition: transform 0.6s var(--ease-out-expo);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover img {
+      transform: scale(1.05);
+    }
+  }
+}
+
+/* Photo cards whose image sits dimmed under a scrim so text can be read
+   over it. Both the resting and the hovered opacity live here rather than
+   half in a component, because they are one decision: how far the picture
+   comes forward when someone looks at it.
+
+   0.55 is a measured ceiling, not a taste call — see the scoped theme
+   override above. Past it, the copy on top stops clearing 4.5:1 against
+   the brightest patches of the photograph even with the corrected text
+   tones. If this number goes up, re-run the measurement. */
+@utility photo-reveal {
+  & img {
+    opacity: 0.4;
+    transition: opacity 0.45s var(--ease-out-expo);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover img {
+      opacity: 0.55;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------
+   SCRIMS
+   Exposed as utilities so the gradient lives here, not in JSX.
+   --------------------------------------------------------------- */
+@utility scrim-photo {
+  background-image: var(--scrim-photo);
+}
+
+@utility scrim-hero {
+  background-image: var(--scrim-hero);
+}
+
+@utility scrim-card {
+  background-image: var(--scrim-card);
+}
+
+@utility scrim-promo {
+  background-image: var(--scrim-promo);
+}
+
+/* Three-stop, deliberately heavier than --scrim-photo: this one is the
+   only thing separating form labels from a full-bleed photograph, and
+   its stops are the measured contrast floor documented above. */
+@utility scrim-photo-strong {
+  background-image: linear-gradient(
+    180deg,
+    rgb(11 11 12 / 0.92) 0%,
+    rgb(11 11 12 / 0.85) 50%,
+    rgb(11 11 12 / 0.95) 100%
+  );
+}
+
+/* ---------------------------------------------------------------
+   LAYOUT
+   The centred content column, used by <main> and the footer so the
+   two can never fall out of alignment.
+   --------------------------------------------------------------- */
+@utility page-shell {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--layout-max-width);
+  padding-inline: 1rem;
+
+  @media (width >= 40rem) {
+    padding-inline: 1.5rem;
+  }
+
+  @media (width >= 64rem) {
+    padding-inline: 2rem;
+  }
+}
+
+/* ---------------------------------------------------------------
+   THEME-CONDITIONAL VISIBILITY
+
+   Lets the theme toggle ship both icons and let CSS choose, instead of
+   picking one in JavaScript. Choosing in JS means the server cannot
+   know which to render, which is either a hydration mismatch or an
+   icon that flips after mount. This has neither: the correct icon is
+   in the first painted frame, before any JS runs.
+   --------------------------------------------------------------- */
+@utility only-dark {
+  :root[data-theme="light"] & {
+    display: none;
+  }
+}
+
+@utility only-light {
+  :root[data-theme="dark"] & {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------
+   TYPOGRAPHY UTILITIES
+   --------------------------------------------------------------- */
 @utility label-mono {
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-2);
+}
+
+/* ---------------------------------------------------------------
+   MOTION
+
+   Every animation here is compositor-only (transform / opacity) or a
+   single SVG property. None animate layout properties, so none can
+   trigger reflow mid-animation.
+
+   All are disabled by the prefers-reduced-motion block above; each
+   uses `both` fill so the reduced-motion end state is the correct
+   final state, never a stuck start state.
+   --------------------------------------------------------------- */
+@keyframes jc-bar-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes jc-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.82);
+  }
+}
+
+/* Grows from its own baseline. scaleY rather than height so the bar's
+   laid-out box never changes — the value label above it cannot jitter,
+   and the browser never reflows during the animation. */
+@utility bar-grow {
+  transform-origin: bottom;
+  animation: jc-bar-grow 0.9s var(--ease-out-expo) both;
+}
+
+@utility live-pulse {
+  animation: jc-pulse 2s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------------
+   MARQUEE
+
+   A scrolling line of promotional copy in the top bar.
+
+   The schedule section had one of these in the mockup and it was
+   removed, so the distinction matters: that one carried information
+   people needed — the summer timetable caveat — and information you
+   cannot read at your own pace is information you have not been given.
+   This one carries a slogan. Missing a word costs nothing and the loop
+   repeats it. Motion is a poor container for facts and an acceptable
+   one for atmosphere.
+
+   What that does not excuse:
+
+   WCAG 2.2.2 applies in full. Content that moves automatically, runs
+   longer than five seconds and sits beside other content needs a
+   mechanism to pause it. An OS-level reduced-motion preference is not
+   that mechanism — it is a different requirement, met separately below
+   — so there is a real pause button in the bar. It also pauses on hover
+   and on focus within, which is a convenience, not the compliance
+   story.
+
+   The animation is a single translate on one element: compositor-only,
+   no layout, no paint, and no JavaScript driving it frame by frame.
+   --------------------------------------------------------------- */
+@keyframes jc-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  /* Exactly one of the two identical groups, which is what makes the
+     wrap invisible. Any other value shows a seam once per cycle. */
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@utility marquee-track {
+  animation: jc-marquee 45s linear infinite;
+
+  .marquee-window:hover &,
+  .marquee-window:focus-within &,
+  .marquee-window[data-paused] & {
+    animation-play-state: paused;
+  }
+
+  /* The base layer collapses every animation to 0.01ms. For a finite
+     entrance that lands on the correct end state; for an infinite loop
+     it would snap the track to -50% and freeze it there, off-centre and
+     mid-word. The reduced-motion answer to a marquee is not "instant",
+     it is "still" — so the animation is removed outright and the track
+     sits where it started. */
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+@utility marquee-window {
+  overflow: hidden;
+  /* Establishes the container that the repeated groups size themselves
+     against, so each group is always at least as wide as the window no
+     matter how wide the monitor is. Without it the loop opens a visible
+     gap on any screen wider than the copy. */
+  container-type: inline-size;
+
+  /* Text that simply stops at a hard edge reads as clipped rather than
+     as continuing past the frame. */
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 2.5rem,
+    #000 calc(100% - 2.5rem),
+    transparent 100%
+  );
+}
+
+/* ---------------------------------------------------------------
+   POINTER-REACTIVE CARD TILT
+
+   The transform reads CSS variables that a tiny client component
+   writes on pointermove. Keeping the transform in CSS means:
+     - the effect is defined once, not recomputed in JS per frame;
+     - the media queries below are the authority on whether it applies
+       at all, so a coarse pointer or a reduced-motion preference can
+       never be tilted even if the listener were somehow attached.
+
+   Identity transform is the default, so a card is unaffected until
+   something sets the variables.
+   --------------------------------------------------------------- */
+@utility tilt {
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))
+    scale3d(var(--tilt-scale, 1), var(--tilt-scale, 1), 1);
+  transition: transform 0.5s var(--ease-out-expo);
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .tilt {
+    transform: none;
+  }
 }

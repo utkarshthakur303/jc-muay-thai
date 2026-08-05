@@ -1,28 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Bebas_Neue, IBM_Plex_Mono, Manrope } from "next/font/google";
+
+import { fontVariables } from "@/lib/fonts";
 
 import "./globals.css";
-
-const bebas = Bebas_Neue({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-bebas",
-  display: "swap",
-});
-
-const manrope = Manrope({
-  weight: ["400", "500", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-manrope",
-  display: "swap",
-});
-
-const plexMono = IBM_Plex_Mono({
-  weight: ["400", "500", "600"],
-  subsets: ["latin"],
-  variable: "--font-plex-mono",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -34,6 +14,15 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+/**
+ * Tints the browser and OS chrome around the page.
+ *
+ * The only place in the codebase where a colour is repeated rather than
+ * tokenised, and unavoidably so: this becomes a <meta> tag, and meta
+ * content cannot read a CSS variable. Both values must mirror `--bg` for
+ * the matching theme in globals.css — if one changes there, change it
+ * here.
+ */
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: dark)", color: "#0B0B0C" },
@@ -67,7 +56,7 @@ export default function RootLayout({
       lang="en"
       data-theme="dark"
       suppressHydrationWarning
-      className={`${bebas.variable} ${manrope.variable} ${plexMono.variable}`}
+      className={fontVariables}
     >
       <head>
         {/*

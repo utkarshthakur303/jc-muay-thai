@@ -1,54 +1,37 @@
-import Link from "next/link";
-
-import { getUser } from "@/lib/supabase/server";
+import { ClassesSection } from "@/components/classes/ClassesSection";
+import { ContactSection } from "@/components/contact/ContactSection";
+import { GallerySection } from "@/components/gallery/GallerySection";
+import { HomeSection } from "@/components/home/HomeSection";
+import { ScheduleSection } from "@/components/schedule/ScheduleSection";
+import { SiteChrome } from "@/components/layout/SiteChrome";
 
 /**
- * Placeholder home page. The full bento-grid port from the approved mockup
- * replaces this — it exists now only so the auth screens have somewhere to
- * link back to.
+ * The public home page.
+ *
+ * Statically generated. Nothing on it reads cookies or the visitor's
+ * session, so Next.js prerenders it at build time and Vercel serves it
+ * from the edge cache — no Node process, no Supabase round-trip, and no
+ * per-visitor work in front of the marketing page. That is what lets it
+ * absorb a traffic spike, and it is why the calls to action point at fixed
+ * destinations that the proxy redirects for signed-in members, rather than
+ * branching on the session here.
+ *
+ * The contact form does not change that. A server action is its own POST
+ * endpoint: the page stays HTML on a CDN, and the only request that ever
+ * reaches a server is an actual submission.
+ *
+ * Section order is the order in navSections. Both are in document order
+ * and the active-section observer watches exactly these ids, so the rail
+ * cannot advertise a section that is not here.
  */
-export default async function HomePage() {
-  const user = await getUser();
-
+export default function HomePage() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-8 px-6 text-center">
-      <div>
-        <p className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
-          Muay Thai — Jersey City
-        </p>
-        <h1 className="mt-3 font-display text-6xl tracking-wide text-text sm:text-7xl">
-          JC MUAYTHAI
-        </h1>
-        <p className="mt-4 text-sm text-text-2">
-          Home page port in progress. Auth screens are ready to review.
-        </p>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        {user ? (
-          <Link
-            href="/account"
-            className="flex min-h-12 items-center rounded-full bg-accent px-7 font-mono text-[13px] font-semibold tracking-[0.08em] text-[#0B0B0C] transition-colors hover:bg-accent-hover"
-          >
-            Your Account
-          </Link>
-        ) : (
-          <>
-            <Link
-              href="/login"
-              className="flex min-h-12 items-center rounded-full bg-accent px-7 font-mono text-[13px] font-semibold tracking-[0.08em] text-[#0B0B0C] transition-colors hover:bg-accent-hover"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/signup"
-              className="flex min-h-12 items-center rounded-full border border-border px-7 font-mono text-[13px] font-semibold tracking-[0.08em] text-text transition-colors hover:border-accent"
-            >
-              Create Account
-            </Link>
-          </>
-        )}
-      </div>
-    </main>
+    <SiteChrome>
+      <HomeSection />
+      <ClassesSection />
+      <ScheduleSection />
+      <GallerySection />
+      <ContactSection />
+    </SiteChrome>
   );
 }

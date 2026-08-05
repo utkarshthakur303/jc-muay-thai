@@ -41,7 +41,7 @@ export function LoginForm({ next }: { next: string }) {
         />
         <Link
           href="/forgot-password"
-          className="self-end font-mono text-[11px] uppercase tracking-[0.08em] text-text-2 transition-colors hover:text-accent"
+          className="self-end font-mono text-[11px] uppercase tracking-[0.08em] text-text-2 transition-colors hover:text-accent-strong"
         >
           Forgot password?
         </Link>

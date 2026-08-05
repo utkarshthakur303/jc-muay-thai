@@ -1,11 +1,9 @@
 import { z } from "zod";
 
-export const emailSchema = z
-  .string()
-  .trim()
-  .min(1, "Enter your email address")
-  .email("That doesn't look like a valid email address")
-  .max(254, "That email address is too long");
+import { emailSchema, type FormState } from "@/lib/validation/fields";
+
+/** Re-exported so existing auth imports keep working unchanged. */
+export { emailSchema };
 
 /**
  * 8 characters minimum. Deliberately no character-class rules: NIST
@@ -39,13 +37,6 @@ export type SignInInput = z.infer<typeof signInSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;
 
 /** Shape returned by every auth server action, consumed by useActionState. */
-export type AuthFormState = {
-  status: "idle" | "error" | "success";
-  message?: string;
-  /** Field-level errors keyed by input name. */
-  fieldErrors?: Record<string, string>;
-  /** Values echoed back so the form does not clear on a failed submit. */
-  values?: Record<string, string>;
-};
+export type AuthFormState = FormState;
 
 export const initialAuthState: AuthFormState = { status: "idle" };

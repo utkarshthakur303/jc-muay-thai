@@ -90,8 +90,27 @@ ignored, with no warning and an empty middleware manifest.
 
 ## Status
 
-Built: authentication (email/password verified end-to-end against the live
-project; Google OAuth pending Cloud Console credentials).
+Built:
 
-Pending: home page port from the approved design, class booking with capacity,
-contact form, admin dashboard.
+- Authentication — email/password verified end-to-end against the live project;
+  Google OAuth pending Cloud Console credentials.
+- Home, Classes, Schedule, Gallery and Contact sections. `/` is statically
+  prerendered and served from the edge; nothing on it reads a session.
+- Contact form — validated, rate-limited, stored in Postgres, with notification
+  email ready to switch on. **Needs one migration applied before it can store
+  anything:** see `SETUP-CONTACT-FORM.md`.
+
+Pending: class booking with capacity, admin dashboard, and the Shop section
+(deliberately unbuilt — nothing here can take a payment; questionnaire Q3.3).
+
+### Single sources of truth
+
+Worth knowing before editing anything:
+
+| Thing | Lives in | Notes |
+|---|---|---|
+| Colour, type scale, radii, shadows, motion | `src/app/globals.css` | No component contains a colour literal, a font-family or a keyframe. |
+| Typefaces | `src/lib/fonts.ts` | Variables named by role (`--font-display-src`), so swapping a face is one line. |
+| The class timetable | `src/content/schedule.ts` | 37 sessions declared once. The weekly chart, totals, busiest days, per-level durations, every class card and every day card are derived. A build-time validator fails the deploy on an overlap or a malformed time. |
+| Business facts, nav, contact channels | `src/content/site.ts` | Contact channels are gated on `confirmed`; unconfirmed ones do not render. |
+| Gallery photographs | `src/content/gallery.ts` | Real pixel dimensions, so next/image reserves the right box. |

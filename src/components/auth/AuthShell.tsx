@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { LogoMark } from "@/components/ui/Icon";
+
 type AuthShellProps = {
   /** Small mono eyebrow above the heading, e.g. "Members". */
   eyebrow: string;
@@ -44,27 +46,16 @@ export function AuthShell({
         />
         {/* Fixed dark scrim in both themes: this is a photo, not a themed
             surface, and light-theme text was unreadable over bright patches. */}
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-linear-to-b from-[rgb(11_11_12/0.35)] to-[rgb(11_11_12/0.94)]"
-        />
+        <div aria-hidden className="scrim-photo absolute inset-0" />
         <div className="relative z-10 flex h-full flex-col justify-between p-12">
           <Link
             href="/"
             className="inline-flex w-fit items-center gap-3 rounded-full focus-visible:outline-2"
           >
-            <span className="flex size-11 items-center justify-center rounded-full bg-accent">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <circle cx="12" cy="12" r="9" stroke="#0B0B0C" strokeWidth="2" />
-                <path
-                  d="M12 5 L12 12 L16 15"
-                  stroke="#0B0B0C"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+            <span className="flex size-11 items-center justify-center rounded-full bg-accent text-ink">
+              <LogoMark />
             </span>
-            <span className="font-display text-2xl tracking-wide text-[#EDEAE2]">
+            <span className="font-display text-2xl tracking-wide text-on-photo">
               JC MUAYTHAI
             </span>
           </Link>
@@ -73,10 +64,10 @@ export function AuthShell({
             <p className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
               Muay Thai — Jersey City
             </p>
-            <p className="mt-4 max-w-md font-display text-5xl leading-[0.92] tracking-wide text-[#EDEAE2]">
+            <p className="mt-4 max-w-md font-display text-5xl leading-[0.92] tracking-wide text-on-photo">
               UNLEASH YOUR INNER FIGHTER
             </p>
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-[rgb(237_234_226/0.8)]">
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-on-photo-2">
               Build confidence. Improve fitness. Learn real skills. Your first
               class is free — no gear, no experience needed.
             </p>
@@ -107,7 +98,7 @@ export function AuthShell({
             where the brand lockup and the terms copy sit. */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-linear-to-b from-[rgb(11_11_12/0.92)] via-[rgb(11_11_12/0.85)] to-[rgb(11_11_12/0.95)] lg:hidden"
+          className="scrim-photo-strong absolute inset-0 lg:hidden"
         />
 
         <div className="relative z-10 mx-auto w-full max-w-md">
@@ -116,16 +107,8 @@ export function AuthShell({
             href="/"
             className="mb-10 inline-flex items-center gap-3 lg:hidden"
           >
-            <span className="flex size-10 items-center justify-center rounded-full bg-accent">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <circle cx="12" cy="12" r="9" stroke="#0B0B0C" strokeWidth="2" />
-                <path
-                  d="M12 5 L12 12 L16 15"
-                  stroke="#0B0B0C"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+            <span className="flex size-10 items-center justify-center rounded-full bg-accent text-ink">
+              <LogoMark size={20} />
             </span>
             <span className="font-display text-xl tracking-wide text-text">
               JC MUAYTHAI

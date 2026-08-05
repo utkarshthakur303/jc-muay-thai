@@ -29,7 +29,7 @@ export default async function AccountPage() {
     <main className="mx-auto w-full max-w-2xl px-5 py-16 sm:px-8">
       <Link
         href="/"
-        className="font-mono text-[11px] uppercase tracking-[0.1em] text-text-2 transition-colors hover:text-accent"
+        className="font-mono text-[11px] uppercase tracking-[0.1em] text-text-2 transition-colors hover:text-accent-strong"
       >
         ← Back to site
       </Link>

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
+import { fieldErrorsFrom } from "@/lib/validation/fields";
 import {
   forgotPasswordSchema,
   signInSchema,
@@ -188,17 +189,4 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/");
-}
-
-function fieldErrorsFrom(error: {
-  issues: { path: PropertyKey[]; message: string }[];
-}): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = issue.path[0];
-    if (typeof key === "string" && !(key in result)) {
-      result[key] = issue.message;
-    }
-  }
-  return result;
 }

@@ -13,7 +13,7 @@ export function ConfigNotice() {
   }
 
   return (
-    <div className="mb-6 rounded-[14px] border border-accent/40 bg-accent/10 px-4 py-3 text-xs leading-relaxed text-accent">
+    <div className="mb-6 rounded-[14px] border border-accent/40 bg-accent/10 px-4 py-3 text-xs leading-relaxed text-accent-strong">
       <strong className="font-semibold">Not connected yet.</strong> This is the
       finished sign-in screen running on placeholder credentials, so the buttons
       won&apos;t authenticate. Add the real Supabase keys to{" "}
