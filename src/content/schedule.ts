@@ -85,6 +85,52 @@ export type Session = {
   readonly end: string;
 };
 
+/**
+ * How many people fit on the mat.
+ *
+ * NEEDS-CLIENT — this is the one invented number in the codebase, and it
+ * is invented because booking cannot exist without it. Everything else the
+ * client has not confirmed is withheld from the page (see contactChannels);
+ * a capacity cannot be withheld, because a class with no limit is a list
+ * and not a booking.
+ *
+ * 16 is a plausible mat count for a Muay Thai class and nothing more. The
+ * consequence of it being wrong is real in both directions: too high and
+ * the gym oversells its own floor, too low and it turns away members who
+ * would have fitted. One number, one place, one edit when the answer
+ * arrives — and it moves to the database the day the admin dashboard
+ * lands.
+ */
+export const DEFAULT_CLASS_CAPACITY = 16;
+
+/**
+ * Per-level overrides. Deliberately empty: kids' classes and open gym
+ * plausibly hold different numbers from a regular class, but "plausibly"
+ * is not a fact, and inventing three numbers is worse than inventing one.
+ */
+export const CAPACITY_BY_LEVEL: Partial<Record<LevelId, number>> = {};
+
+export function capacityFor(session: Session): number {
+  return CAPACITY_BY_LEVEL[session.level] ?? DEFAULT_CLASS_CAPACITY;
+}
+
+/**
+ * Stable identifier for a slot in the weekly pattern, e.g.
+ * "mon-1900-advanced".
+ *
+ * This is what booking rows point back at, so its stability matters more
+ * than its prettiness. Derived from the three things that define a slot
+ * rather than stored, so it cannot drift from the timetable it names.
+ *
+ * If a class permanently moves from 18:00 to 19:00 the slug changes, and
+ * that is correct: it is a different slot, and the occurrences already
+ * generated under the old slug stay as the historical record of what
+ * actually ran.
+ */
+export function sessionSlug(session: Session): string {
+  return `${session.day}-${session.start.replace(":", "")}-${session.level}`;
+}
+
 /** Terse constructor so the timetable below stays readable and editable. */
 const at = (day: DayId, level: LevelId, start: string, end: string): Session => ({
   day,
@@ -185,6 +231,29 @@ function assertScheduleIsSane(): void {
         );
       }
     }
+  }
+
+  /**
+   * Slugs identify booking rows, so a collision would silently merge two
+   * different classes into one bookable slot — members booking the 5pm
+   * beginner class and finding themselves in the 5pm advanced one.
+   *
+   * The overlap check above already makes this impossible, since two
+   * sessions cannot share a day and a start time without overlapping. This
+   * asserts it anyway: the two rules are independent, and if the overlap
+   * rule is ever relaxed for a gym that runs two mats, this is the one that
+   * has to fail the build.
+   */
+  const slugs = new Set<string>();
+  for (const session of sessions) {
+    const slug = sessionSlug(session);
+    if (slugs.has(slug)) {
+      throw new Error(
+        `Schedule: duplicate session slug "${slug}". Two sessions share a ` +
+          `day, start time and level, which booking cannot tell apart.`,
+      );
+    }
+    slugs.add(slug);
   }
 }
 

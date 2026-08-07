@@ -1,10 +1,18 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  MEMBER_COOKIE,
+  MEMBER_COOKIE_MAX_AGE,
+  encodeMember,
+  memberCookieOptions,
+  memberDisplayFrom,
+} from "@/lib/auth/memberCookie";
+import { safeNextPath } from "@/lib/auth/redirects";
 import { fieldErrorsFrom } from "@/lib/validation/fields";
 import {
   forgotPasswordSchema,
@@ -32,16 +40,10 @@ async function getOrigin(): Promise<string> {
   return `${protocol}://${host}`;
 }
 
-/**
- * Only allow relative, single-slash paths as a post-login destination.
- * Without this check, `?next=https://evil.example` would turn the login
- * page into an open redirect.
- */
-function safeNext(value: FormDataEntryValue | null): string {
-  if (typeof value !== "string") return "/account";
-  if (!value.startsWith("/") || value.startsWith("//")) return "/account";
-  return value;
-}
+/** The open-redirect guard and the default destination both live in
+ *  lib/auth/redirects.ts, because the login and sign-up pages need the
+ *  same rule and a rule written twice drifts. */
+const safeNext = safeNextPath;
 
 export async function signIn(
   _prev: AuthFormState,
@@ -62,7 +64,7 @@ export async function signIn(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
     /**
@@ -80,6 +82,32 @@ export async function signIn(
     };
   }
 
+  /**
+   * Write the display cookie here, not only in the proxy.
+   *
+   * This was a real bug, and the reasoning that produced it is worth
+   * recording. The proxy reconciles this cookie on every request, so it
+   * looked as though a redirect to "/" would pick it up on the way. It does
+   * not: `redirect()` in a Server Action is completed by Next's *client*
+   * router, which can satisfy it from its own cache without ever issuing
+   * the request the proxy would have run on. The member was signed in, and
+   * the top bar went on saying "Sign in" until they happened to trigger a
+   * full page load.
+   *
+   * The rule this leaves behind: the moment identity changes is the moment
+   * to write it down. Reconciling later is a safety net, not a mechanism.
+   */
+  if (data.user) {
+    const store = await cookies();
+    store.set({
+      name: MEMBER_COOKIE,
+      value: encodeMember(memberDisplayFrom(data.user)),
+      ...memberCookieOptions(MEMBER_COOKIE_MAX_AGE),
+    });
+  }
+
+  // The home page carries no session-dependent server render, but /account
+  // and /book do, and both are reachable from here without a fresh load.
   revalidatePath("/", "layout");
   redirect(safeNext(formData.get("next")));
 }
@@ -106,11 +134,23 @@ export async function signUp(
   const supabase = await createClient();
   const origin = await getOrigin();
 
+  /**
+   * The destination survives the round trip through the inbox.
+   *
+   * Someone who pressed "Book free class" without an account travels
+   * /book → /login → /signup → their email → back here. If `next` were
+   * dropped anywhere on that journey they would confirm their address and
+   * land on the home page, having forgotten why they signed up. This is the
+   * only leg where it has to survive outside the browser, so it rides on
+   * the confirmation link.
+   */
+  const next = safeNext(formData.get("next"));
+
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`,
+      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
       data: { full_name: parsed.data.fullName },
     },
   });
@@ -187,6 +227,14 @@ export async function requestPasswordReset(
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
+
+  // Cleared here for the same reason it is set in signIn: the redirect
+  // below may never reach the proxy. Without this the account chip can
+  // outlive the session on screen, which is the more alarming direction of
+  // the same bug — it tells someone they are still signed in.
+  const store = await cookies();
+  store.set({ name: MEMBER_COOKIE, value: "", ...memberCookieOptions(0) });
+
   revalidatePath("/", "layout");
   redirect("/");
 }

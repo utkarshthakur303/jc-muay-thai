@@ -323,6 +323,36 @@
 }
 
 /* ---------------------------------------------------------------
+   SIGNED-IN STATE
+
+   Both versions of the account control — "Sign in" and the account
+   chip — ship in the same HTML, and CSS picks between them from an
+   attribute that a pre-paint script sets on <html> after reading a
+   cookie the proxy wrote.
+
+   The alternative approaches both cost something real. Asking the
+   server who the visitor is would render the home page per request
+   and lose its CDN cache, on the one page that carries all the
+   traffic. Waiting for React to hydrate would show every returning
+   member "Sign in" turning into their own account, on every load.
+   This costs one attribute and gets the first frame right.
+
+   These rules are deliberately unlayered. Tailwind's utilities live
+   in @layer utilities, and an unlayered rule beats any layered one
+   regardless of specificity — so `display: none` here wins over the
+   `flex` on the element itself without needing !important.
+
+   Nothing is authorised by that attribute; see lib/auth/memberCookie.ts.
+   --------------------------------------------------------------- */
+html:not([data-member]) .member-only {
+  display: none;
+}
+
+html[data-member] .guest-only {
+  display: none;
+}
+
+/* ---------------------------------------------------------------
    SURFACES
    The card treatment appears on every bento tile and every class
    card. One definition so a change to the radius or the border

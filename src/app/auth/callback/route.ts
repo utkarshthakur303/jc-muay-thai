@@ -19,12 +19,26 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
 
-  // Guard against an open redirect via the `next` parameter.
+  /**
+   * Guard against an open redirect via the `next` parameter.
+   *
+   * The fallback is the site, not the account page — a confirmed email or
+   * a completed Google sign-in should return someone to what they were
+   * looking at, and the top bar's account chip is the confirmation that it
+   * worked.
+   *
+   * Password recovery deliberately overrides this by passing its own
+   * `next`, because a reset link that drops someone on the home page has
+   * stranded them. That destination — /account/password — is not built
+   * yet, so recovery links currently 404 after a successful verification.
+   * The fault is the missing page, not this fallback; changing the
+   * fallback would hide it rather than fix it.
+   */
   const nextParam = searchParams.get("next");
   const next =
     nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
       ? nextParam
-      : "/account";
+      : "/";
 
   // Google returns its own error params when a user cancels the consent screen.
   const providerError = searchParams.get("error");

@@ -73,8 +73,12 @@ export function MobileNav() {
         })}
       </ul>
 
+      {/* Same destination as the desktop CTA — /book, guarded by the proxy,
+          which sends a signed-out visitor through login and back. Pointing
+          this at /signup instead used to strand a member who already had an
+          account on a sign-up form. */}
       <Link
-        href="/signup"
+        href="/book"
         className="flex min-h-11 w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-3xl border border-ink py-1.5 text-ink"
       >
         <Icon name="calendar" size={20} />

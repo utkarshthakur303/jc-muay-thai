@@ -5,18 +5,15 @@ import Link from "next/link";
  *
  * The mockup's equivalent buttons opened a drawer that listed class times
  * but could not book anything — three separate controls, none of which did
- * what they said. Until the booking flow exists, this points at the real
- * funnel that does: create an account, then book. Nothing on this page
- * promises an action the site cannot complete.
+ * what they said. This one does: it goes to the booking page, and the
+ * booking page books.
  *
  * The destination is fixed rather than branched on the visitor's session,
- * which is what keeps the home page static. A member who is already signed
- * in and taps this is redirected to /account by the proxy, so the single
- * destination stays correct for everyone without the page having to ask
- * Supabase who is asking.
- *
- * When booking ships, this becomes /book (and /login?next=/book for
- * signed-out visitors). It is the only place either changes.
+ * which is what keeps the home page static and served from the CDN. /book
+ * is a protected route, so the proxy sorts out who is who: a member goes
+ * straight there, and anyone else is sent to /login?next=/book and
+ * returned to it the moment they have an account. The page never has to
+ * ask Supabase who is asking.
  */
 export function PrimaryCta({
   label = "Book free class",
@@ -27,7 +24,7 @@ export function PrimaryCta({
 }) {
   return (
     <Link
-      href="/signup"
+      href="/book"
       className={`flex min-h-11 items-center justify-center rounded-full bg-accent px-6 font-mono text-[12px] font-semibold tracking-[0.08em] text-ink transition-colors hover:bg-accent-hover ${className}`}
     >
       {label}

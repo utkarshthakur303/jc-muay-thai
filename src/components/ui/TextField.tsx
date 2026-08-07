@@ -38,7 +38,21 @@ export function TextField({
     <Field label={label} hint={hint} error={error}>
       {({ id, describedBy, invalid }) => (
         <div className="relative">
+          {/*
+            Password managers, email-masking add-ons and form fillers
+            decorate inputs — an injected `style` with a data-URI icon, a
+            `data-*` marker of their own — between the HTML arriving and
+            React hydrating. React reports that as a hydration mismatch
+            that reads like an application bug and is not one: the
+            extension edited the page we sent.
+
+            Suppressing it here is narrow and safe. Every attribute on this
+            element derives from props and from useActionState's initial
+            state, which is the same object on both sides, so no legitimate
+            mismatch is possible for React to hide.
+          */}
           <input
+            suppressHydrationWarning
             id={id}
             name={name}
             type={inputType}

@@ -7,6 +7,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { Alert } from "@/components/ui/Alert";
 import { Divider } from "@/components/ui/Divider";
 import { ConfigNotice } from "@/components/auth/ConfigNotice";
+import { safeNextPath, withNext } from "@/lib/auth/redirects";
 
 export const metadata: Metadata = {
   title: "Sign In",
@@ -27,10 +28,9 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
 
-  const rawNext = typeof params.next === "string" ? params.next : "";
-  // Only relative paths — never let a query parameter become an open redirect.
-  const next =
-    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/account";
+  // Shared with the sign-in action and the sign-up page, so the three
+  // cannot disagree about what counts as a safe destination.
+  const next = safeNextPath(params.next);
 
   const errorKey = typeof params.error === "string" ? params.error : null;
   const errorMessage = errorKey ? ERROR_MESSAGES[errorKey] : null;
@@ -44,7 +44,11 @@ export default async function LoginPage({
         <p>
           New here?{" "}
           <Link
-            href="/signup"
+            // The whole reason /book works for a first-time visitor: the
+            // proxy sends them here with ?next=/book, and this carries it
+            // through sign-up and out the other side of the confirmation
+            // email.
+            href={withNext("/signup", next)}
             className="font-medium text-accent-strong underline-offset-4 hover:underline"
           >
             Create an account

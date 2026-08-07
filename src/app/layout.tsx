@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 
+import { MEMBER_COOKIE } from "@/lib/auth/memberCookie";
 import { fontVariables } from "@/lib/fonts";
 
 import "./globals.css";
@@ -48,6 +49,27 @@ const THEME_SCRIPT = `
 })();
 `;
 
+/**
+ * Same idea, one layer down: marks the document as belonging to a signed-in
+ * member before first paint, so the top bar can show an account chip
+ * instead of "Sign in" without the page having had to ask the server who
+ * is looking — which is what keeps the home page static.
+ *
+ * Only the presence of the cookie is read here. The contents are decoded
+ * by the chip itself, which needs them only inside a panel that is closed
+ * on first paint, so nothing is gained by parsing JSON in the critical
+ * path.
+ */
+const MEMBER_SCRIPT = `
+(function(){
+  try {
+    if (('; ' + document.cookie).indexOf('; ${MEMBER_COOKIE}=') !== -1) {
+      document.documentElement.setAttribute('data-member','');
+    }
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -72,6 +94,10 @@ export default function RootLayout({
         <script
           suppressHydrationWarning
           dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }}
+        />
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: MEMBER_SCRIPT }}
         />
       </head>
       <body>{children}</body>

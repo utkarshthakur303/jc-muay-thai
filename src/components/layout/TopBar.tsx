@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AccountChip } from "@/components/layout/AccountChip";
 import { BookingMarquee } from "@/components/layout/BookingMarquee";
 import { PrimaryCta } from "@/components/layout/PrimaryCta";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -52,21 +53,16 @@ export function TopBar() {
       <div className="flex shrink-0 items-center gap-2 lg:gap-3">
         <ThemeToggle />
 
-        {/* Signed-in members are redirected from /login to /account by the
-            proxy, so this one destination is right for every visitor and
-            the page never has to look up a session to render.
+        {/* Renders "Sign in" or the member's account chip. Both ship in the
+            HTML and CSS chooses, so this stays a server component and the
+            page stays static — see AccountChip.
 
             Shown at every width. It used to be hidden below sm, which left
             a returning member on a phone with no way into their account
             from the home page at all — the bottom bar's only account link
             goes to /signup. The narrower padding keeps it inside the bar
             at 320px alongside the wordmark and the theme toggle. */}
-        <Link
-          href="/login"
-          className="flex min-h-11 items-center rounded-full px-2.5 font-mono text-[12px] tracking-[0.08em] text-text-2 uppercase transition-colors hover:text-accent-strong sm:px-4"
-        >
-          Sign in
-        </Link>
+        <AccountChip />
 
         <PrimaryCta className="hidden lg:flex" />
       </div>

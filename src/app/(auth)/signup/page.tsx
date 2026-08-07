@@ -6,6 +6,7 @@ import { GoogleButton } from "@/components/auth/GoogleButton";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 import { ConfigNotice } from "@/components/auth/ConfigNotice";
 import { Divider } from "@/components/ui/Divider";
+import { safeNextPath, withNext } from "@/lib/auth/redirects";
 
 export const metadata: Metadata = {
   title: "Create Account",
@@ -13,7 +14,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function SignUpPage() {
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const next = safeNextPath(params.next);
+
   return (
     <AuthShell
       eyebrow="Join the gym"
@@ -23,7 +31,10 @@ export default function SignUpPage() {
         <p>
           Already a member?{" "}
           <Link
-            href="/login"
+            // Carries the destination across, so someone who came here to
+            // book and then realised they already have an account is not
+            // dropped on the home page after signing in.
+            href={withNext("/login", next)}
             className="font-medium text-accent-strong underline-offset-4 hover:underline"
           >
             Sign in
@@ -34,17 +45,23 @@ export default function SignUpPage() {
       <ConfigNotice />
 
       <div className="flex flex-col gap-6">
-        <GoogleButton label="Sign up with Google" />
+        <GoogleButton label="Sign up with Google" next={next} />
         <Divider>or sign up with email</Divider>
-        <SignUpForm />
+        <SignUpForm next={next} />
 
         <p className="text-xs leading-relaxed text-text-3">
           By creating an account you agree to our{" "}
-          <Link href="/terms" className="text-text-2 underline underline-offset-4">
+          <Link
+            href="/terms"
+            className="text-text-2 underline underline-offset-4"
+          >
             Terms
           </Link>{" "}
           and{" "}
-          <Link href="/privacy" className="text-text-2 underline underline-offset-4">
+          <Link
+            href="/privacy"
+            className="text-text-2 underline underline-offset-4"
+          >
             Privacy Policy
           </Link>
           .

@@ -15,6 +15,11 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // For the test files only. Node runs TypeScript directly but resolves
+    // imports as ESM, which requires the real extension; tsc normally
+    // forbids it because it would emit a path that does not exist at
+    // runtime. Safe here because noEmit is on — nothing is emitted to break.
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "noUncheckedIndexedAccess": true,

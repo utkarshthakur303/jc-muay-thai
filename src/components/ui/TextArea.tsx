@@ -41,7 +41,11 @@ export function TextArea({
   return (
     <Field label={label} hint={hint} error={error}>
       {({ id, describedBy, invalid }) => (
+        // Grammarly and similar writing add-ons decorate textareas the way
+        // password managers decorate inputs. Same reasoning as TextField —
+        // see the comment there.
         <textarea
+          suppressHydrationWarning
           id={id}
           name={name}
           rows={rows}

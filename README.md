@@ -37,6 +37,12 @@ development rather than failing with an opaque network error.
 | `npm run build` | Production build |
 | `npm run start` | Serve a production build |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Node's built-in runner over `src/**/*.test.ts` |
+
+Tests cover the calculations that are wrong in ways nobody notices until
+months later — chiefly turning "Tuesday 19:00 at the gym" into a real
+instant across both daylight saving transitions. `scripts/ts-alias-hook.mjs`
+teaches Node the `@/` path alias, which it does not read from `tsconfig.json`.
 
 ## Environment variables
 
@@ -93,15 +99,26 @@ ignored, with no warning and an empty middleware manifest.
 Built:
 
 - Authentication — email/password verified end-to-end against the live project;
-  Google OAuth pending Cloud Console credentials.
+  Google OAuth pending Cloud Console credentials. Completing a sign-in returns
+  to the site, not to `/account`; a visitor sent to `/login` from a protected
+  route still lands back where they were headed.
 - Home, Classes, Schedule, Gallery and Contact sections. `/` is statically
-  prerendered and served from the edge; nothing on it reads a session.
-- Contact form — validated, rate-limited, stored in Postgres, with notification
-  email ready to switch on. **Needs one migration applied before it can store
-  anything:** see `SETUP-CONTACT-FORM.md`.
+  prerendered and served from the edge; nothing on it reads a session — the
+  top bar's account chip is driven by a display cookie the proxy writes and a
+  pre-paint script reads, so the page stays cacheable and still greets a
+  returning member on the first frame. See `src/lib/auth/memberCookie.ts`.
+- Contact form — validated, rate-limited, stored in Postgres, verified
+  end-to-end. Notification email is written but not switched on (`RESEND_API_KEY`
+  is unset), so enquiries are stored and nobody is emailed about them.
+- Class booking — `/book` lists the next 14 days with live spot counts;
+  `/account` shows upcoming classes with cancellation and a history of past
+  ones. Capacity cannot be oversold: the limit is a database constraint, not
+  an application check.
 
-Pending: class booking with capacity, admin dashboard, and the Shop section
-(deliberately unbuilt — nothing here can take a payment; questionnaire Q3.3).
+Pending: attendance marking (needs a coach-facing register — deliberately out
+of scope, so `/account` says "classes booked", never "attended"), the admin
+dashboard for editing the timetable and gallery, payments, and the Shop
+section.
 
 ### Single sources of truth
 
@@ -114,3 +131,7 @@ Worth knowing before editing anything:
 | The class timetable | `src/content/schedule.ts` | 37 sessions declared once. The weekly chart, totals, busiest days, per-level durations, every class card and every day card are derived. A build-time validator fails the deploy on an overlap or a malformed time. |
 | Business facts, nav, contact channels | `src/content/site.ts` | Contact channels are gated on `confirmed`; unconfirmed ones do not render. |
 | Gallery photographs | `src/content/gallery.ts` | Real pixel dimensions, so next/image reserves the right box. |
+| Who the visitor is, for display | `src/lib/auth/memberCookie.ts` | Written by the proxy, read before paint and by the account chip. Display only — nothing is authorised by it, and every protected route still calls `getUser()`. |
+| Where auth sends people afterwards | `src/lib/auth/redirects.ts` | One open-redirect guard, shared by the sign-in action, both auth pages and the callback. |
+| Mat capacity | `src/content/schedule.ts` | `DEFAULT_CLASS_CAPACITY`. **The one invented number in the codebase** — booking cannot exist without a limit. Needs the gym's real figure. |
+| Booking rules | `supabase/migrations/20260807120000_class_booking.sql` | Capacity, ownership and the booking window are RLS policies and constraints. The server actions produce the error *message*; they are not the enforcement. |
