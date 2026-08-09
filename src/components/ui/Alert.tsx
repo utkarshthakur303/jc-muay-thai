@@ -4,7 +4,7 @@ type AlertProps = {
 };
 
 const TONE_CLASSES: Record<AlertProps["tone"], string> = {
-  error: "border-crimson/40 bg-crimson/10 text-crimson",
+  error: "border-danger/40 bg-danger/10 text-danger",
   success: "border-accent/40 bg-accent/10 text-accent-strong",
   warning: "border-accent/40 bg-accent/10 text-accent-strong",
 };

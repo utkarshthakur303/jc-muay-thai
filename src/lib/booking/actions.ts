@@ -53,12 +53,20 @@ export async function bookClass(
 ): Promise<BookingState> {
   const user = await getUser();
   if (!user) {
-    return { status: "error", message: "Please sign in to book a class." };
+    return {
+      intent: "book",
+      status: "error",
+      message: "Please sign in to book a class.",
+    };
   }
 
   const parsed = occurrenceIdSchema.safeParse(formData.get("occurrenceId"));
   if (!parsed.success) {
-    return { status: "error", message: "That class could not be identified." };
+    return {
+      intent: "book",
+      status: "error",
+      message: "That class could not be identified.",
+    };
   }
 
   const supabase = await createClient();
@@ -82,12 +90,20 @@ export async function bookClass(
   );
 
   if (error) {
-    return { status: "error", message: messageForCode(error.code) };
+    return {
+      intent: "book",
+      status: "error",
+      message: messageForCode(error.code),
+    };
   }
 
   revalidatePath("/book");
   revalidatePath("/account");
-  return { status: "success", message: "Booked. See you on the mat." };
+  return {
+    intent: "book",
+    status: "success",
+    message: "Booked. See you on the mat.",
+  };
 }
 
 export async function cancelBooking(
@@ -97,6 +113,7 @@ export async function cancelBooking(
   const user = await getUser();
   if (!user) {
     return {
+      intent: "cancel",
       status: "error",
       message: "Please sign in to manage your classes.",
     };
@@ -104,7 +121,11 @@ export async function cancelBooking(
 
   const parsed = occurrenceIdSchema.safeParse(formData.get("occurrenceId"));
   if (!parsed.success) {
-    return { status: "error", message: "That class could not be identified." };
+    return {
+      intent: "cancel",
+      status: "error",
+      message: "That class could not be identified.",
+    };
   }
 
   const supabase = await createClient();
@@ -126,6 +147,7 @@ export async function cancelBooking(
 
   if (error) {
     return {
+      intent: "cancel",
       status: "error",
       message:
         error.code === "42501"
@@ -140,6 +162,7 @@ export async function cancelBooking(
   revalidatePath("/book");
   revalidatePath("/account");
   return {
+    intent: "cancel",
     status: "success",
     message: "Cancelled. Your spot is back in the pool.",
   };

@@ -18,6 +18,16 @@
 export type BookingState = {
   status: "idle" | "success" | "error";
   message?: string;
+  /**
+   * Which action produced this, so the client can celebrate a booking and
+   * merely acknowledge a cancellation.
+   *
+   * Carried explicitly rather than inferred from `message`. The alternative
+   * — matching on the copy — makes the toast silently pick the wrong tone
+   * the first time someone rewords a sentence, and nothing about editing a
+   * string suggests you are editing behaviour.
+   */
+  intent?: "book" | "cancel";
 };
 
 export const initialBookingState: BookingState = { status: "idle" };

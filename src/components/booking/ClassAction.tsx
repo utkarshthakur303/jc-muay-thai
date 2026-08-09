@@ -1,22 +1,45 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { useBookingToast } from "@/components/booking/BookingToast";
 import { bookClass, cancelBooking } from "@/lib/booking/actions";
-import { initialBookingState } from "@/lib/booking/state";
+import { initialBookingState, type BookingState } from "@/lib/booking/state";
 
 /**
  * The Book / Cancel control on a single class.
  *
- * One `useActionState` per class rather than one per page. A shared state
- * would mean an error from booking the Tuesday class appearing beside the
- * Thursday one, and a pending spinner on every button at once — the member
- * pressed one thing and forty of them reacted.
+ * State is per-class, not per-page. A shared one would mean an error from
+ * booking the Tuesday class appearing beside the Thursday one, and a
+ * pending spinner on every button at once — the member pressed one thing
+ * and forty of them reacted.
  *
- * A form, not an onClick fetch, so it still works before hydration and
- * without JavaScript: the server action is its own POST endpoint, and the
- * page re-renders from the server either way.
+ * WHY THIS IS NOT `useActionState`
+ *
+ * It was, and the toast broke on one page because of it. `useActionState`
+ * hands the result back as component state, so the only place to react to
+ * it is an effect — and on /account a successful cancel removes the very
+ * row this component lives in. React commits the removal and the new state
+ * together, the component unmounts, and its effect never runs. Booking
+ * from the calendar announced itself; cancelling from the account page did
+ * not, silently, and only there.
+ *
+ * Awaiting the action in a submit handler puts the result in a plain
+ * closure instead. A closure does not care that the component that created
+ * it has gone, and `showToast` belongs to the provider up in MemberShell,
+ * which has not. Same server action, same validation, same errors — the
+ * result is simply read somewhere that outlives the row.
+ *
+ * WHAT THAT COSTS
+ *
+ * A `<form action={serverAction}>` can be submitted before React hydrates,
+ * because React renders it as a real POST endpoint. Wrapping the action in
+ * a client function gives that up: a tap in the window between HTML
+ * arriving and JavaScript running now does nothing rather than booking the
+ * class. Accepted, because that window is already inert on this page — the
+ * calendar's day buttons are client state, so before hydration a member
+ * cannot reach any class but the default day's anyway.
  */
 
 function Pending({
@@ -46,7 +69,7 @@ function Pending({
   const skin =
     tone === "book"
       ? "bg-accent text-ink hover:bg-accent-hover"
-      : "border border-border text-text-2 hover:border-crimson hover:text-crimson";
+      : "border border-border text-text-2 hover:border-danger hover:text-danger";
 
   return (
     <button
@@ -74,14 +97,46 @@ export function ClassAction({
   /** What this class is, for the accessible name. "Tue 12 Aug, 7–8:30 PM Advanced". */
   label: string;
 }) {
-  const [state, formAction] = useActionState(
-    booked ? cancelBooking : bookClass,
-    initialBookingState,
-  );
+  const [state, setState] = useState<BookingState>(initialBookingState);
+  const showToast = useBookingToast();
+
+  const action = booked ? cancelBooking : bookClass;
+  const intent = booked ? "cancel" : "book";
+
+  /**
+   * React keeps `useFormStatus` pending for as long as this promise is
+   * unresolved, so the button still reports itself busy.
+   *
+   * setState may land after this row has been removed from the page — that
+   * is the whole point — where React treats it as a no-op. The toast is
+   * what carries the news at that point.
+   */
+  async function submit(formData: FormData) {
+    let result: BookingState;
+    try {
+      result = await action(initialBookingState, formData);
+    } catch {
+      // The actions return their failures rather than throwing, so this is
+      // the transport giving out: a dropped connection, a deploy mid-click.
+      // Left unhandled it would reach the error boundary and replace the
+      // whole page over one failed button.
+      result = {
+        intent,
+        status: "error",
+        message: "Couldn't reach the gym's system. Please try again.",
+      };
+    }
+
+    setState(result);
+
+    if (result.status === "success") {
+      showToast?.({ intent: result.intent ?? intent, detail: label });
+    }
+  }
 
   return (
     <div className="flex shrink-0 flex-col items-end gap-1.5">
-      <form action={formAction}>
+      <form action={submit}>
         <input type="hidden" name="occurrenceId" value={occurrenceId} />
 
         {/* The visible word is "Book", which read out of context forty
@@ -91,7 +146,7 @@ export function ClassAction({
           label={booked ? "Cancel" : full ? "Full" : "Book"}
           accessibleName={booked ? `Cancel ${label}` : `Book ${label}`}
           pendingLabel={booked ? "Cancelling…" : "Booking…"}
-          tone={booked ? "cancel" : "book"}
+          tone={intent}
           disabled={!booked && full}
         />
       </form>
@@ -99,7 +154,7 @@ export function ClassAction({
       {state.status === "error" && state.message ? (
         <p
           role="alert"
-          className="max-w-52 text-right text-[11px] leading-snug text-crimson"
+          className="max-w-52 text-right text-[11px] leading-snug text-danger"
         >
           {state.message}
         </p>

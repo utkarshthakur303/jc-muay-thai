@@ -65,7 +65,7 @@ function ClassLine({
           assumes the site lost it and turns up anyway.
         */}
         {entry.cancelledByGym ? (
-          <p className="mt-1.5 text-[13px] leading-snug text-crimson">
+          <p className="mt-1.5 text-[13px] leading-snug text-danger">
             Cancelled by the gym
             {entry.cancellationNote ? ` — ${entry.cancellationNote}` : "."}
           </p>
@@ -221,7 +221,7 @@ export default async function AccountPage() {
         <form action={signOut} className="mt-8">
           <button
             type="submit"
-            className="min-h-11 rounded-full border border-border px-6 font-mono text-[12px] tracking-[0.08em] text-text-2 uppercase transition-colors hover:border-crimson hover:text-crimson"
+            className="min-h-11 rounded-full border border-border px-6 font-mono text-[12px] tracking-[0.08em] text-text-2 uppercase transition-colors hover:border-danger hover:text-danger"
           >
             Sign out
           </button>

@@ -91,9 +91,9 @@ export function LiveClassStatus() {
       >
         <span
           aria-hidden
-          className="live-pulse size-2 shrink-0 rounded-full bg-crimson"
+          className="live-pulse size-2 shrink-0 rounded-full bg-danger"
         />
-        <span className="text-crimson">
+        <span className="text-danger">
           {LEVEL_LABELS[status.session.level]} on now
         </span>
       </p>

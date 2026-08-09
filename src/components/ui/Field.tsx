@@ -29,13 +29,13 @@ export const fieldControlClass =
 /**
  * The hover lives here rather than in `fieldControlClass` on purpose.
  * Tailwind emits `hover:` variants after plain utilities, so a shared
- * `hover:border-*` would win over `border-crimson` and an invalid field
+ * `hover:border-*` would win over `border-danger` and an invalid field
  * would drop its red border the moment the pointer crossed it — the one
  * moment it most needs to keep it. Branching means the error state has no
  * hover to be overridden by.
  */
 export function fieldBorderClass(error?: string): string {
-  return error ? "border-crimson" : "border-border hover:border-text-3";
+  return error ? "border-danger" : "border-border hover:border-text-3";
 }
 
 export function Field({
@@ -79,7 +79,7 @@ export function Field({
       ) : null}
 
       {error ? (
-        <p id={errorId} className="text-xs text-crimson">
+        <p id={errorId} className="text-xs text-danger">
           {error}
         </p>
       ) : null}

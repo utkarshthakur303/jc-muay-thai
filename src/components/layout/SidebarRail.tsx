@@ -57,7 +57,7 @@ export function SidebarRail() {
                       // invisible — you could see the label brighten but
                       // not what you were about to click. The tint draws
                       // the actual hit area.
-                      "text-ink/70 hover:bg-ink/10 hover:text-ink"
+                      "text-ink/85 hover:bg-ink/10 hover:text-ink"
                 }`}
               >
                 <Icon name={section.icon} />

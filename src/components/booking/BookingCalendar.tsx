@@ -135,7 +135,7 @@ export function BookingCalendar({ days }: { days: readonly CalendarDay[] }) {
                   aria-hidden
                   className={`font-mono text-[10px] leading-none ${
                     isSelected
-                      ? "text-ink/70"
+                      ? "text-ink/85"
                       : closed
                         ? "text-text-3"
                         : "text-text-2"

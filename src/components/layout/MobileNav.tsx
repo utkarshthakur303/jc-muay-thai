@@ -60,7 +60,7 @@ export function MobileNav() {
                 href={`#${section.id}`}
                 aria-current={isActive ? "location" : undefined}
                 className={`flex min-h-11 flex-col items-center justify-center gap-1 rounded-3xl py-1.5 transition-colors ${
-                  isActive ? "bg-ink text-accent" : "text-ink/70"
+                  isActive ? "bg-ink text-accent" : "text-ink/85"
                 }`}
               >
                 <Icon name={section.icon} size={20} />
