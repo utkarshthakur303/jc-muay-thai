@@ -42,6 +42,11 @@ import { navSections } from "@/content/site";
  * `pb-32` on <main> reserves the space this occupies; without it the bar
  * would cover the last of the page content, which no amount of scrolling
  * could reveal.
+ *
+ * The streak control was tried here and removed. A seventh item took about
+ * seven pixels from each section, and at 320px and 360px that was enough
+ * to clip CLASSES and CONTACT — the exact failure the paragraph above
+ * describes. It lives in the top bar on phones instead. This bar is full.
  */
 export function MobileNav() {
   const active = useActiveSection();

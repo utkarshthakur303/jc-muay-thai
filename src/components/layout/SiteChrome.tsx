@@ -1,3 +1,4 @@
+import { StreakProvider } from "@/components/attendance/StreakProvider";
 import { ActiveSectionProvider } from "@/components/layout/ActiveSection";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { SidebarRail } from "@/components/layout/SidebarRail";
@@ -11,8 +12,12 @@ import { sectionIds, site } from "@/content/site";
  * A server component, and nothing inside it reads the visitor's session.
  * That is what lets the home page be statically generated and served from
  * the CDN edge — no Supabase round-trip in front of a marketing page, and
- * throughput that does not depend on the auth service being up. Only the
- * two nav surfaces that track scroll position ship JavaScript.
+ * throughput that does not depend on the auth service being up.
+ *
+ * StreakProvider does not change that. It is a client component that asks
+ * for the member's streak *after* mount, so this tree still renders
+ * without knowing who is looking at it. Rendering the streak on the server
+ * would be less code and would cost the home page its cache.
  *
  * The left padding at lg matches the rail's 136px footprint (24px offset +
  * 88px rail + 24px gutter). It is on a wrapper rather than on <main> so
@@ -23,7 +28,8 @@ import { sectionIds, site } from "@/content/site";
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   return (
     <ActiveSectionProvider sectionIds={sectionIds}>
-      {/*
+      <StreakProvider>
+        {/*
         Removed at the client's request: a "Skip to content" link used to
         sit here as the first focusable element.
 
@@ -36,33 +42,34 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
 
         <main id="main"> keeps its id, so restoring this is one anchor.
       */}
-      <SidebarRail />
-      <TopBar />
-      <MobileNav />
+        <SidebarRail />
+        <TopBar />
+        <MobileNav />
 
-      <div className="lg:pl-(--layout-rail-offset)">
-        <main id="main" className="page-shell pt-24 pb-32 lg:pt-30 lg:pb-20">
-          {children}
-        </main>
+        <div className="lg:pl-(--layout-rail-offset)">
+          <main id="main" className="page-shell pt-24 pb-32 lg:pt-30 lg:pb-20">
+            {children}
+          </main>
 
-        <footer className="page-shell pb-32 lg:pb-12">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-7">
-            <span className="font-display text-xl tracking-wide text-text">
-              {site.name.toUpperCase()}
-            </span>
-            {/*
+          <footer className="page-shell pb-32 lg:pb-12">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-7">
+              <span className="font-display text-xl tracking-wide text-text">
+                {site.name.toUpperCase()}
+              </span>
+              {/*
               No year. The page is statically generated, so `new Date()`
               would freeze at build time and quietly go stale — a footer
               reading "© 2026" two years on looks abandoned. A year is not
               required for copyright to subsist, so the honest option is to
               omit what we cannot keep current without a rebuild.
             */}
-            <span className="font-mono text-xs text-text-2">
-              © {site.name}. {site.city}, {site.region}.
-            </span>
-          </div>
-        </footer>
-      </div>
+              <span className="font-mono text-xs text-text-2">
+                © {site.name}. {site.city}, {site.region}.
+              </span>
+            </div>
+          </footer>
+        </div>
+      </StreakProvider>
     </ActiveSectionProvider>
   );
 }

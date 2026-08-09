@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { StreakButton } from "@/components/attendance/StreakButton";
 import { AccountChip } from "@/components/layout/AccountChip";
 import { BookingMarquee } from "@/components/layout/BookingMarquee";
 import { PrimaryCta } from "@/components/layout/PrimaryCta";
@@ -22,8 +23,9 @@ import { site } from "@/content/site";
  * receive silence, which costs more trust than the affordance buys. It
  * belongs here when there is an index behind it.
  *
- * What remains is what the rail cannot carry: the theme control, and the
- * route for a member who already has an account.
+ * What remains is what the rail cannot carry: the theme control, the route
+ * for a member who already has an account, and — on phones only — the
+ * training streak, which the bottom bar had no width left for.
  */
 export function TopBar() {
   return (
@@ -38,7 +40,15 @@ export function TopBar() {
         <span className="flex size-9 items-center justify-center rounded-full bg-accent text-ink">
           <LogoMark size={18} />
         </span>
-        <span className="font-display text-lg tracking-wide text-text">
+        {/*
+          The word yields before anything else does. Adding the streak
+          control took the bar to 304px of content inside 288px at 320px
+          wide, and of the four things competing for that space this is
+          the only one that is not a control — the mark beside it still
+          links home and still carries the brand. Measured: 304px before,
+          247px after, with the text back from 360px up where it fits.
+        */}
+        <span className="font-display text-lg tracking-wide text-text max-[359px]:hidden">
           {site.name.toUpperCase()}
         </span>
       </Link>
@@ -51,6 +61,13 @@ export function TopBar() {
       <BookingMarquee />
 
       <div className="flex shrink-0 items-center gap-2 lg:gap-3">
+        {/*
+          Phones only — the desktop rail carries this. It sits beside the
+          account chip because both are member state, and because the
+          bottom bar has no room for it: see StreakButton.
+        */}
+        <StreakButton placement="bar" />
+
         <ThemeToggle />
 
         {/* Renders "Sign in" or the member's account chip. Both ship in the

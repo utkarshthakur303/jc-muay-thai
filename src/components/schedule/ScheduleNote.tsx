@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { SCHEDULE_NOTE } from "@/content/schedule";
+import { useDismissable } from "@/lib/ui/useDismissable";
 
 /**
  * The standing timetable caveat, folded into a quiet disclosure.
@@ -36,35 +37,15 @@ export function ScheduleNote() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setOpen(false);
-      // Focus must come back, or a keyboard user who dismisses the panel
-      // is returned to the top of the document.
-      buttonRef.current?.focus();
-    };
-
-    /**
-     * pointerdown, not click: a click listener fires after the press has
-     * already moved focus, so a member pressing a link behind the panel
-     * would see it close and the link fire in an order that looks like a
-     * misclick. pointerdown closes on the press itself.
-     */
-    const onPointerDown = (event: PointerEvent) => {
-      if (wrapperRef.current?.contains(event.target as Node)) return;
-      setOpen(false);
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, [open]);
+  // Escape, press-outside and focus restore all live in one hook now, so
+  // this and the streak panel cannot drift apart. See lib/ui/useDismissable.
+  const close = useCallback(() => setOpen(false), []);
+  useDismissable({
+    open,
+    onDismiss: close,
+    containerRef: wrapperRef,
+    triggerRef: buttonRef,
+  });
 
   return (
     <div ref={wrapperRef} className="relative mt-4 inline-block">
@@ -89,7 +70,7 @@ export function ScheduleNote() {
         <div
           id="schedule-note-panel"
           role="note"
-          className="pop-in absolute top-full left-0 z-20 w-[19rem] max-w-[calc(100vw-2.5rem)] rounded-2xl border border-border bg-card p-4 text-sm leading-relaxed text-text-2 shadow-float"
+          className="pop-in absolute top-full left-0 origin-top-left z-20 w-[19rem] max-w-[calc(100vw-2.5rem)] rounded-2xl border border-border bg-card p-4 text-sm leading-relaxed text-text-2 shadow-float"
         >
           {SCHEDULE_NOTE}
         </div>

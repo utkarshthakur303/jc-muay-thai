@@ -678,8 +678,12 @@ html[data-member] .guest-only {
   }
 }
 
+/* No transform-origin here on purpose. Three things use this now and each
+   grows from a different edge — the schedule note from its trigger's top
+   left, the rail's streak panel from its bottom left, the mobile one from
+   its bottom right. Callers set an `origin-*` utility; baking one in here
+   would make two of the three appear to slide in from the wrong side. */
 @utility pop-in {
-  transform-origin: top left;
   animation: jc-pop-in 0.18s var(--ease-out-expo) both;
 }
 
@@ -707,6 +711,141 @@ html[data-member] .guest-only {
 
 @utility toast-punch {
   animation: jc-toast-punch 0.42s var(--ease-out-expo) both;
+}
+
+/* ---------------------------------------------------------------
+   STREAK
+
+   The one place on this site allowed to be playful. All of it is
+   transform and opacity, so none of it can reflow the page it is
+   animating over, and the base layer's reduced-motion block collapses
+   every one of these to its end state — each uses `both` fill, so
+   "reduced" means the flame simply sits there lit rather than the
+   member losing the feedback entirely.
+   --------------------------------------------------------------- */
+
+/* Fired from behind the flame when a day is marked. Eight of these,
+   rotated by a wrapper — see the note in StreakPanel about why the
+   rotation cannot live on the same element as the animation. */
+@keyframes jc-ray {
+  from {
+    opacity: 0.9;
+    transform: translateY(-4px) scaleY(0.5);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-26px) scaleY(1);
+  }
+}
+
+@utility streak-ray {
+  position: absolute;
+  left: -1.5px;
+  top: 0;
+  width: 3px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--color-accent);
+  animation: jc-ray 0.55s var(--ease-out-expo) both;
+}
+
+/* The number landing. Overshoots by a third and settles — big enough to
+   be felt in peripheral vision, short enough not to delay reading it. */
+@keyframes jc-streak-pop {
+  0% {
+    transform: scale(0.72);
+  }
+  55% {
+    transform: scale(1.32);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@utility streak-pop {
+  animation: jc-streak-pop 0.42s var(--ease-out-expo) both;
+}
+
+/* A day filling in on the week strip. */
+@keyframes jc-dot-in {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@utility dot-in {
+  animation: jc-dot-in 0.35s var(--ease-out-expo) both;
+}
+
+/* A live streak breathing.
+
+   The only infinite animation in the panel, and it is kept to a 6%
+   scale and a 15% opacity swing on purpose: anything larger next to a
+   number somebody is trying to read becomes a distraction rather than a
+   sign of life.
+
+   Unlike the marquee, this needs no reduced-motion special case. Its
+   100% frame is the resting state, so the base layer collapsing it to
+   0.01ms leaves the flame exactly where it belongs — still, lit, and
+   correct. */
+@keyframes jc-flame {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.06);
+  }
+}
+
+@utility flame-alive {
+  animation: jc-flame 2.6s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+/* The press itself. Compresses under the finger and springs back, so the
+   button answers before the network does — the action takes a round trip
+   and this is what fills it. */
+@keyframes jc-press-pop {
+  50% {
+    transform: scale(0.96);
+  }
+}
+
+@utility press-pop {
+  &:active {
+    animation: jc-press-pop 0.18s var(--ease-out-expo);
+  }
+}
+
+/* A milestone arriving. Slower and wider than the number pop, because it
+   is the one moment that has earned a second of attention. */
+@keyframes jc-milestone {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility milestone-pop {
+  animation: jc-milestone 0.5s var(--ease-out-expo) both;
 }
 
 /* ---------------------------------------------------------------

@@ -22,7 +22,8 @@ export type IconName =
   | "pause"
   | "play"
   | "arrow-right"
-  | "user";
+  | "user"
+  | "flame";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   home: (
@@ -88,6 +89,18 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <circle cx="12" cy="8" r="4" />
       <path d="M5 21a7 7 0 0 1 14 0" />
+    </>
+  ),
+  /**
+   * The streak mark. Stroked like the rest of the set rather than filled,
+   * so it sits at the same visual weight as the icons beside it in the
+   * rail — a solid flame among outlines reads as a badge, not a nav item.
+   * The inner tongue is what stops it looking like a leaf at 20px.
+   */
+  flame: (
+    <>
+      <path d="M12 2.7c3.3 3 5.4 5.6 5.4 8.8a5.4 5.4 0 0 1-10.8 0c0-1.4.5-2.6 1.3-3.8.5 1 1.2 1.6 2 1.9.3-2.6 1-4.8 2.1-6.9Z" />
+      <path d="M12 21.3a2.6 2.6 0 0 1-2.6-2.6c0-1.4 1-2.3 2.6-4 1.6 1.7 2.6 2.6 2.6 4a2.6 2.6 0 0 1-2.6 2.6Z" />
     </>
   ),
 };

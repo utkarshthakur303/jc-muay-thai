@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { StreakButton } from "@/components/attendance/StreakButton";
 import { useActiveSection } from "@/components/layout/ActiveSection";
 import { Icon, LogoMark } from "@/components/ui/Icon";
 import { navSections, site } from "@/content/site";
@@ -69,6 +70,14 @@ export function SidebarRail() {
           );
         })}
       </ul>
+
+      {/*
+        Between the sections and the booking CTA, and outside the <ul>,
+        because it is not a section of this page — the same reasoning that
+        keeps the booking button out of the list. It renders nothing at all
+        for a signed-out visitor; see StreakButton.
+      */}
+      <StreakButton placement="rail" />
 
       <Link
         href="/signup"
