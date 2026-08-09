@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 
 import { env } from "@/lib/env";
+import { secureCookieOptions } from "@/lib/supabase/cookieOptions";
 import {
   MEMBER_COOKIE,
   MEMBER_COOKIE_MAX_AGE,
@@ -78,7 +79,7 @@ export async function updateSession(request: NextRequest) {
           }
           response = NextResponse.next({ request });
           for (const { name, value, options } of cookiesToSet) {
-            response.cookies.set(name, value, options);
+            response.cookies.set(name, value, secureCookieOptions(options));
           }
         },
       },

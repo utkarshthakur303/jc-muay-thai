@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 import { env } from "@/lib/env";
+import { secureCookieOptions } from "@/lib/supabase/cookieOptions";
 
 /**
  * Supabase client for Server Components, Server Actions and Route Handlers.
@@ -23,7 +24,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             for (const { name, value, options } of cookiesToSet) {
-              cookieStore.set(name, value, options);
+              cookieStore.set(name, value, secureCookieOptions(options));
             }
           } catch {
             // Server Components cannot set cookies. This is expected and
