@@ -159,6 +159,32 @@ export function listPastBookings(): Promise<BookedClass[]> {
 }
 
 /**
+ * How many classes the member has coming up.
+ *
+ * Read separately from {@link listUpcomingBookings} because the two have
+ * different callers: /account wants the rows, and /book wants only the
+ * number, for the count on the "Your classes" tab. Fetching fifty rows to
+ * call `.length` on them would put a member's whole schedule on the wire
+ * to render a single digit.
+ *
+ * Cancelled-by-the-gym classes are counted. They are still on the member's
+ * list and still need reading — a tab that says 2 beside a list of 3 is a
+ * tab nobody trusts again.
+ */
+export async function countUpcomingBookings(): Promise<number> {
+  const supabase = await createClient();
+
+  const { count, error } = await supabase
+    .from("class_occurrences")
+    .select("id,bookings!inner(status)", { count: "exact", head: true })
+    .eq("bookings.status", "booked")
+    .gt("starts_at", new Date().toISOString());
+
+  if (error || count === null) return 0;
+  return count;
+}
+
+/**
  * How many classes the member has booked that have already happened.
  *
  * Deliberately *booked*, not attended. Nothing in this system knows who

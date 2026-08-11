@@ -18,11 +18,10 @@ import { navSections, site } from "@/content/site";
  * alpha composites to 4.7:1, which clears AA for its 10px size.
  *
  * Height, at five sections: 40px padding + 72px logo + five 52px items with
- * 6px gaps + 60px for the booking button = 476px, so the rail needs a 524px
- * viewport. Below that height the layout is under the lg breakpoint and
- * MobileNav has taken over instead — including at 200% browser zoom, which
- * shrinks the CSS viewport rather than the rail. `overflow-y-auto` is there
- * as a guard, not as an expected state.
+ * 6px gaps + 58px for the streak item + 60px for the booking button = 534px,
+ * so the rail needs a 582px viewport. Below that the section list scrolls
+ * inside itself and everything else stays put — see the note on the scroll
+ * container below, which is why the streak sits outside it.
  */
 export function SidebarRail() {
   const active = useActiveSection();
@@ -40,9 +39,22 @@ export function SidebarRail() {
         <LogoMark />
       </Link>
 
+      {/*
+        `flex-1` deliberately does NOT live here any more. It used to, which
+        pushed everything after the list to the bottom of the rail — that is
+        where the streak control ended up, and the client has asked for it
+        directly under Contact instead. The spacer below now absorbs the
+        free space, so the list is exactly as tall as its five items.
+
+        `overflow-y-auto` stays as the short-viewport guard, and its scope
+        is why the streak is not inside it: an element with `overflow-y`
+        set to anything but visible clips on BOTH axes — CSS forces the
+        other axis to `auto` — so a 320px panel opening sideways out of
+        this box would be cut off at the rail's edge.
+      */}
       <ul
         role="list"
-        className="flex min-h-0 flex-1 flex-col items-center gap-1.5 overflow-y-auto"
+        className="flex min-h-0 shrink flex-col items-center gap-1.5 overflow-y-auto"
       >
         {navSections.map((section) => {
           const isActive = active === section.id;
@@ -72,17 +84,24 @@ export function SidebarRail() {
       </ul>
 
       {/*
-        Between the sections and the booking CTA, and outside the <ul>,
-        because it is not a section of this page — the same reasoning that
-        keeps the booking button out of the list. It renders nothing at all
-        for a signed-out visitor; see StreakButton.
+        Directly under Contact, and outside the <ul>, because it is not a
+        section of this page — the same reasoning that keeps the booking
+        button out of the list. It renders nothing at all for a signed-out
+        visitor, and the gap above it closes with it; see StreakButton.
       */}
       <StreakButton placement="rail" />
+
+      {/*
+        Holds the booking button at the foot of the rail. A `mt-auto` on the
+        button itself would collapse to nothing when the rail is full,
+        putting the CTA hard against the streak item.
+      */}
+      <div aria-hidden className="min-h-3 flex-1" />
 
       <Link
         href="/signup"
         aria-label="Book your free class"
-        className="mt-3 flex size-12 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-ink hover:text-accent"
+        className="flex size-12 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-ink hover:text-accent"
       >
         <Icon name="calendar" size={22} />
       </Link>

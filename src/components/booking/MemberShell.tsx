@@ -17,13 +17,48 @@ const TABS = [
   { href: "/account", label: "Your classes" },
 ] as const;
 
+/**
+ * The count on the "Your classes" tab.
+ *
+ * It is here rather than only on /account because a member who has just
+ * booked something needs to see that it landed somewhere, from the page
+ * they booked it on. A tab that reads "Your classes 3" is the shortest
+ * honest statement of that.
+ *
+ * Hidden at zero. A grey 0 beside a tab is a control advertising its own
+ * emptiness, and /account already says "Nothing booked yet" properly.
+ *
+ * The digit is `aria-hidden` with the sentence beside it, because "3" read
+ * out after "Your classes" could be a keyboard shortcut, a position in a
+ * list, or a count of anything.
+ */
+function TabCount({ count, active }: { count: number; active: boolean }) {
+  return (
+    <span
+      className={`ml-2 flex min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] leading-4 ${
+        // Inverted on the active tab, which is already an accent fill —
+        // accent on accent would be an invisible badge.
+        active ? "bg-ink text-accent" : "bg-accent text-ink"
+      }`}
+    >
+      <span aria-hidden>{count}</span>
+      <span className="sr-only">
+        {count} {count === 1 ? "class" : "classes"} booked
+      </span>
+    </span>
+  );
+}
+
 export function MemberShell({
   current,
   heading,
+  upcomingCount = 0,
   children,
 }: {
   current: "/book" | "/account";
   heading: string;
+  /** Classes the member has coming up. Shown on the "Your classes" tab. */
+  upcomingCount?: number;
   children: React.ReactNode;
 }) {
   /**
@@ -50,6 +85,8 @@ export function MemberShell({
           <ul role="list" className="flex flex-wrap gap-2">
             {TABS.map((tab) => {
               const active = tab.href === current;
+              const showCount =
+                tab.href === "/account" && upcomingCount > 0;
               return (
                 <li key={tab.href}>
                   <Link
@@ -62,6 +99,9 @@ export function MemberShell({
                     }`}
                   >
                     {tab.label}
+                    {showCount ? (
+                      <TabCount count={upcomingCount} active={active} />
+                    ) : null}
                   </Link>
                 </li>
               );

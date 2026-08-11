@@ -21,15 +21,60 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * that makes them.
  */
 
-/** How far ahead members can book. Two weeks is more than anyone plans a gym class. */
-export const BOOKING_WINDOW_DAYS = 14;
+/**
+ * How far ahead members can book.
+ *
+ * Was 14. Raised to 30 so the month view on /book is a real month rather
+ * than a fortnight of live days followed by a fortnight of grey — the
+ * client's call, made with the trade-off on the table: a member can now
+ * book four weeks ahead of a timetable that is edited by hand in the
+ * Supabase console, so cancelling a class a month out means editing rows
+ * people have already booked.
+ *
+ * Note this was never the security boundary and still is not. The RLS
+ * policy in 20260807120000_class_booking.sql allows booking any scheduled
+ * occurrence with `starts_at > now()`, so anything materialised has always
+ * been bookable by a member talking to PostgREST directly. This constant
+ * decides what the page *offers*.
+ */
+export const BOOKING_WINDOW_DAYS = 30;
 
 /** How far ahead rows are created. Comfortably past the window, so the
  *  tail never runs dry between refreshes. */
-const HORIZON_DAYS = 35;
+const HORIZON_DAYS = 60;
 
 /** Refill once the furthest existing class is closer than this. */
-const REFRESH_BELOW_DAYS = 21;
+const REFRESH_BELOW_DAYS = 45;
+
+/**
+ * THE invariant between the three numbers above.
+ *
+ * `REFRESH_BELOW_DAYS` is the floor on how far ahead classes are
+ * guaranteed to exist: below it the next call refills, above it nothing
+ * happens. So the moment the booking window reaches past it, the calendar
+ * starts rendering days that have no rows — and a day with no rows is
+ * indistinguishable from a day the gym is shut. The page would quietly
+ * tell members there are no classes on days that are simply not generated
+ * yet.
+ *
+ * It held before by luck (21 > 14) and was never written down. Asserted at
+ * module load, so getting it wrong fails the build rather than shipping a
+ * calendar that lies about the last fortnight of its own window.
+ */
+if (REFRESH_BELOW_DAYS < BOOKING_WINDOW_DAYS) {
+  throw new Error(
+    `Booking horizon: REFRESH_BELOW_DAYS (${REFRESH_BELOW_DAYS}) is below ` +
+      `BOOKING_WINDOW_DAYS (${BOOKING_WINDOW_DAYS}). The window would show ` +
+      `days whose classes have not been generated yet.`,
+  );
+}
+
+if (HORIZON_DAYS <= REFRESH_BELOW_DAYS) {
+  throw new Error(
+    `Booking horizon: HORIZON_DAYS (${HORIZON_DAYS}) must exceed ` +
+      `REFRESH_BELOW_DAYS (${REFRESH_BELOW_DAYS}), or every call refills.`,
+  );
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ClassAction } from "@/components/booking/ClassAction";
 import { MemberShell } from "@/components/booking/MemberShell";
+import {
+  NextClassCard,
+  NoUpcomingCard,
+} from "@/components/booking/NextClassCard";
 import { LEVEL_LABELS } from "@/content/schedule";
 import { site } from "@/content/site";
 import { signOut } from "@/lib/auth/actions";
 import { memberDisplayFrom } from "@/lib/auth/memberCookie";
 import {
   countPastBookings,
+  countUpcomingBookings,
   listPastBookings,
   listUpcomingBookings,
   type BookedClass,
@@ -95,61 +99,88 @@ export default async function AccountPage() {
    */
   const { name: fullName } = memberDisplayFrom(user);
 
-  const [upcoming, past, pastTotal] = await Promise.all([
+  const [upcoming, upcomingTotal, past, pastTotal] = await Promise.all([
     listUpcomingBookings(),
+    countUpcomingBookings(),
     listPastBookings(),
     countPastBookings(),
   ]);
 
+  /**
+   * The next class is lifted out of the list and given the top of the
+   * page; the rest follow as rows. `listUpcomingBookings` orders by
+   * `starts_at` ascending in Postgres, so the first row is the soonest —
+   * this does not re-sort, and must not, because sorting a page of fifty
+   * in JavaScript would sort the wrong fifty.
+   */
+  const [nextUp, ...later] = upcoming;
+
   return (
-    <MemberShell current="/account" heading="Your classes">
+    <MemberShell
+      current="/account"
+      heading="Your classes"
+      upcomingCount={upcomingTotal}
+    >
       <section aria-labelledby="upcoming-heading" className="mt-10">
         <h2
           id="upcoming-heading"
-          className="border-b border-border pb-3 font-mono text-[12px] tracking-widest text-text uppercase"
+          className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border pb-3 font-mono text-[12px] tracking-widest text-text uppercase"
         >
-          Coming up
+          <span>Coming up</span>
+          {upcomingTotal > 0 ? (
+            <span className="text-text-2">
+              {upcomingTotal} {upcomingTotal === 1 ? "class" : "classes"} booked
+            </span>
+          ) : null}
         </h2>
 
-        {upcoming.length === 0 ? (
-          <p className="mt-5 text-sm leading-relaxed text-text-2">
-            Nothing booked yet.{" "}
-            <Link
-              href="/book"
-              className="text-accent-strong underline underline-offset-4"
-            >
-              Find a class
-            </Link>
-            .
-          </p>
+        {!nextUp ? (
+          <NoUpcomingCard />
         ) : (
-          <ul role="list" className="mt-1 flex flex-col">
-            {upcoming.map((entry) => (
-              <ClassLine
-                key={entry.occurrenceId}
-                entry={entry}
-                action={
-                  /*
-                    No cancel control on a class the gym has already
-                    cancelled. There is nothing left to cancel, and the
-                    update policy would refuse it — leaving the member
-                    pressing a button that returns an error explaining
-                    something that is not what happened.
-                  */
-                  entry.cancelledByGym ? null : (
-                    <ClassAction
-                      occurrenceId={entry.occurrenceId}
-                      booked
-                      label={`${LEVEL_LABELS[entry.level]}, ${formatClassDateLong(
-                        entry.startsAt,
-                        site.timeZone,
-                      )}, ${formatClassTimeRange(entry.startsAt, entry.endsAt, site.timeZone)}`}
+          <>
+            <NextClassCard entry={nextUp} />
+
+            {later.length > 0 ? (
+              <>
+                <p className="mt-8 font-mono text-[11px] tracking-[0.14em] text-text-3 uppercase">
+                  Then
+                </p>
+                <ul role="list" className="mt-1 flex flex-col">
+                  {later.map((entry) => (
+                    <ClassLine
+                      key={entry.occurrenceId}
+                      entry={entry}
+                      action={
+                        /*
+                          No cancel control on a class the gym has already
+                          cancelled. There is nothing left to cancel, and
+                          the update policy would refuse it — leaving the
+                          member pressing a button that returns an error
+                          explaining something that is not what happened.
+                        */
+                        entry.cancelledByGym ? null : (
+                          <ClassAction
+                            occurrenceId={entry.occurrenceId}
+                            booked
+                            label={`${LEVEL_LABELS[entry.level]}, ${formatClassDateLong(
+                              entry.startsAt,
+                              site.timeZone,
+                            )}, ${formatClassTimeRange(entry.startsAt, entry.endsAt, site.timeZone)}`}
+                          />
+                        )
+                      }
                     />
-                  )
-                }
-              />
-            ))}
-          </ul>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+
+            {upcomingTotal > upcoming.length ? (
+              <p className="mt-4 font-mono text-[11px] text-text-3">
+                Showing the next {upcoming.length}.
+              </p>
+            ) : null}
+          </>
         )}
       </section>
 
