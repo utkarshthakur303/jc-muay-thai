@@ -38,6 +38,23 @@
      here, not a hunt for every `text-[#0B0B0C]` in the tree. */
   --color-ink: #0b0b0c;
 
+  /* The exact inverse: anything drawn ON an ink surface. That is the
+     active nav pill, the streak trigger while its panel is open, and a
+     selected day in the booking calendar — the three places the site
+     says "this one".
+
+     19.67:1 on ink, the highest contrast anywhere on the site. It is a
+     brand constant rather than a theme surface because an ink pill is
+     ink in both themes; the rail is accent-filled in light mode too.
+
+     Pure #ffffff and not the --color-on-photo off-white beside it:
+     that one is mixed toward the background to sit calmly over a
+     photograph, and this one is meant to be the brightest thing in its
+     pill. Measured, not assumed — white on the ACCENT fill would have
+     been 3.55:1 and failed AA, which is why a selected day changes its
+     fill to ink rather than keeping the red. */
+  --color-on-ink: #ffffff;
+
   /* On-photo — text and icons sitting over a photograph. Photographs
      are dark in BOTH themes (they are content, not surfaces), so
      these must not follow the theme or light mode becomes unreadable
@@ -282,6 +299,18 @@
 
   html {
     scroll-behavior: smooth;
+
+    /* Reserves the scrollbar's width permanently.
+
+       The gallery lightbox locks body scrolling while it is open, and
+       without a reserved gutter that lock removes the scrollbar and
+       widens the viewport by its width — everything on the page jumps
+       sideways at the moment the photograph appears, and jumps back
+       when it closes. The custom scrollbar below is 10px and always
+       classic rather than an overlay, so this gutter is already
+       occupied on every scrolling page: reserving it costs nothing
+       visible and makes the lock free of side effects. */
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -426,6 +455,67 @@ html:not([data-member]) .member-only {
 
 html[data-member] .guest-only {
   display: none;
+}
+
+/* ---------------------------------------------------------------
+   GALLERY LIGHTBOX
+
+   Built on the native <dialog>, which is what makes it defensible.
+   The gallery's own comment used to say a lightbox was not worth its
+   cost — focus trap, Escape, focus restoration, inert background,
+   aria-modal — and that was true of a hand-rolled one. `showModal()`
+   supplies every item on that list from the platform, so the cost is
+   now a backdrop, a size cap and a close button.
+
+   `::backdrop` is rendered in the top layer, and inheritance into it
+   is not something to rely on across engines, so the scrim is a
+   literal. Literals are exactly what this file is for.
+   --------------------------------------------------------------- */
+@utility lightbox {
+  /* The UA stylesheet gives dialog a border, padding, a white
+     background and auto margins. All four have to go before any of
+     the layout below means anything. */
+  max-width: 100vw;
+  max-height: 100dvh;
+  border: 0;
+  padding: 0;
+  background: transparent;
+
+  &::backdrop {
+    background: rgb(11 11 12 / 0.9);
+  }
+
+  /* The photograph arriving. Opacity and transform only, so it cannot
+     reflow the page behind it, and `both` fill means the reduced-motion
+     block in the base layer collapses this to its correct end state
+     rather than to a stuck start state. */
+  &[open] {
+    animation: jc-lightbox-in 0.22s var(--ease-out-expo) both;
+  }
+
+  &[open]::backdrop {
+    animation: jc-fade-in 0.22s var(--ease-out-expo) both;
+  }
+}
+
+@keyframes jc-lightbox-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes jc-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* ---------------------------------------------------------------

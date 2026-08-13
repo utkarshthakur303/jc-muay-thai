@@ -64,8 +64,12 @@ export function MobileNav() {
               <Link
                 href={`#${section.id}`}
                 aria-current={isActive ? "location" : undefined}
+                /* White on the ink pill, matching the rail exactly — the
+                   two are the same control at two widths, and an active
+                   state that differed between them would read as a bug on
+                   whichever one you saw second. 19.67:1. */
                 className={`flex min-h-11 flex-col items-center justify-center gap-1 rounded-3xl py-1.5 transition-colors ${
-                  isActive ? "bg-ink text-accent" : "text-ink/85"
+                  isActive ? "bg-ink text-on-ink" : "text-ink/85"
                 }`}
               >
                 <Icon name={section.icon} size={20} />

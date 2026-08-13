@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { DayCell } from "@/components/booking/DayCell";
 import { DayClasses } from "@/components/booking/DayClasses";
 import type { CalendarModel, CalendarPeriod } from "@/lib/booking/calendar";
 
@@ -17,8 +18,12 @@ import type { CalendarModel, CalendarPeriod } from "@/lib/booking/calendar";
  * exist rather than one being the "real" one:
  *
  *   Day    — "what can I book right now", the shortest path to a booking.
- *   Week   — "when am I training this week", every class visible at once.
+ *   Week   — "which day this week", seven cells and the one you pick.
  *   Month  — "when shall I train", the shape of the month before the detail.
+ *
+ * Week and month are the same interaction at two scales: a row of days
+ * with their counts, and the chosen day's classes underneath. Only the
+ * picker differs, so all three views end in one shared panel.
  *
  * MONTH IS THE DEFAULT
  *
@@ -252,6 +257,7 @@ export function BookingCalendar({ model }: { model: CalendarModel }) {
           </div>
 
           <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+            {/* Blanks so the 1st lands under the right weekday. */}
             {Array.from(
               { length: periodDays[0]?.weekdayColumn ?? 0 },
               (_, index) => (
@@ -259,99 +265,63 @@ export function BookingCalendar({ model }: { model: CalendarModel }) {
               ),
             )}
 
-            {periodDays.map((day) => {
-              const isSelected = day.key === selectedKey;
-              const count = day.classes.length;
-              // A Sunday cannot be chosen because there is nothing on it.
-              // A past or not-yet-open day cannot be chosen because it
-              // cannot be booked. Everything else can, including a day
-              // with nothing left — the list below then says why.
-              const selectable = day.availability === "open" && !day.closed;
-
-              /*
-                Why the accessible name is spelled out: "12" read on its
-                own is not a date, and a disabled square announces nothing
-                about why it is disabled. The three unavailable states are
-                visually identical by design — position tells a sighted
-                member which is which — so the name is the only place the
-                distinction survives.
-              */
-              const reason = day.closed
-                ? "gym closed"
-                : day.availability === "past"
-                  ? "already passed"
-                  : day.availability === "upcoming"
-                    ? "not open for booking yet"
-                    : count === 0
-                      ? "nothing left to book"
-                      : classCountLabel(count);
-
-              return (
-                <button
-                  key={day.key}
-                  type="button"
-                  disabled={!selectable}
-                  aria-pressed={isSelected}
-                  aria-controls="selected-day"
-                  aria-label={`${day.fullLabel}${
-                    day.relative ? ` (${day.relative})` : ""
-                  } — ${reason}`}
-                  onClick={() => setCursor(day.key)}
-                  className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl border transition-colors sm:min-h-16 ${
-                    isSelected
-                      ? "border-accent bg-accent text-ink"
-                      : selectable
-                        ? "border-border text-text hover:border-accent hover:text-accent-strong"
-                        : "cursor-not-allowed border-transparent text-text-3"
-                  } ${day.isToday && !isSelected ? "ring-1 ring-accent/45" : ""}`}
-                >
-                  <span className="font-mono text-sm leading-none">
-                    {day.dayNumber}
-                  </span>
-
-                  {/* A count, not dots. "6" tells a member the evening is
-                      busy; six identical dots make them count. A day that
-                      cannot be booked shows nothing rather than a zero,
-                      which would read as "the gym is shut". */}
-                  <span
-                    aria-hidden
-                    className={`font-mono text-[10px] leading-none ${
-                      isSelected
-                        ? "text-ink/85"
-                        : selectable
-                          ? "text-text-2"
-                          : "text-text-3"
-                    }`}
-                  >
-                    {!selectable ? (day.closed ? "—" : "") : count}
-                  </span>
-                </button>
-              );
-            })}
+            {periodDays.map((day) => (
+              <DayCell
+                key={day.key}
+                day={day}
+                selected={day.key === selectedKey}
+                onSelect={setCursor}
+              />
+            ))}
           </div>
         </div>
       ) : null}
 
+      {/*
+        The week as seven cells you pick from, rather than seven days of
+        classes stacked on top of each other.
+
+        The stacked version showed every class in the week at once, which
+        sounds like more information and read as a wall — six open days at
+        six or seven classes each is around forty rows, and the day you
+        actually wanted was somewhere in the middle of it. Seven cells put
+        the whole week on one line, with the busy days legible at a glance
+        from their counts, and the classes for the one day you chose
+        underneath. Same interaction as the month grid, at week scale, so
+        switching between the two views teaches nothing new.
+
+        No column headers here: with only seven cells each carries its own
+        weekday name, which also survives the cells wrapping on a narrow
+        phone where a fixed header row would not line up.
+      */}
+      {view === "week" && active ? (
+        <div
+          role="group"
+          aria-label="Choose a day"
+          className="mt-6 rounded-card border border-border bg-card p-3 sm:p-4"
+        >
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+            {periodDays.map((day) => (
+              <DayCell
+                key={day.key}
+                day={day}
+                selected={day.key === selectedKey}
+                weekdayLabel={WEEKDAY_HEADERS[day.weekdayColumn]}
+                onSelect={setCursor}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/*
+        One panel for all three views. Day, week and month differ only in
+        the picker above; what they are picking is always a single day,
+        so there is one place its classes are rendered and one heading
+        format to keep right.
+      */}
       <section id="selected-day" className="mt-8">
-        {view === "week" ? (
-          periodDays.map((day) => (
-            <div key={day.key} className="mb-8 last:mb-0">
-              <h2
-                className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b pb-3 font-mono text-[12px] tracking-widest uppercase ${
-                  day.availability === "open" && !day.closed
-                    ? "border-border text-text"
-                    : "border-divider text-text-3"
-                }`}
-              >
-                {day.fullLabel}
-                {day.relative ? (
-                  <span className="text-accent-strong">{day.relative}</span>
-                ) : null}
-              </h2>
-              <DayClasses day={day} lastOpenLabel={model.lastOpenLabel} />
-            </div>
-          ))
-        ) : selected ? (
+        {selected ? (
           <>
             <h2 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border pb-3 font-mono text-[12px] tracking-widest text-text uppercase">
               {selected.fullLabel}

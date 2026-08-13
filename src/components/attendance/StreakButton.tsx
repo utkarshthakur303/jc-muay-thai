@@ -109,9 +109,15 @@ const TRIGGER: Record<Placement, string> = {
 
 const SKIN: Record<Placement, { idle: string; open: string }> = {
   // On the accent-filled rail, drawn in ink like everything else on it.
+  //
+  // The open state is white on ink, following the nav items directly
+  // above it. This control is not a nav destination, but it wears the
+  // same pill in the same column, and leaving it accent-on-ink while its
+  // five neighbours went white would have read as the one item that was
+  // missed rather than as a deliberate distinction.
   rail: {
     idle: "text-ink/85 hover:bg-ink/10 hover:text-ink",
-    open: "bg-ink text-accent",
+    open: "bg-ink text-on-ink",
   },
   // On a themed surface, matched to the theme toggle and account chip
   // beside it so the three read as one cluster of controls.

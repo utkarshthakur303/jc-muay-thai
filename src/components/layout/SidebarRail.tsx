@@ -65,7 +65,12 @@ export function SidebarRail() {
                 aria-current={isActive ? "location" : undefined}
                 className={`flex w-16 flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-2 transition-colors ${
                   isActive
-                    ? "bg-ink text-accent"
+                    ? // White on the ink pill, not accent on it. The accent
+                      // version read as a red icon on a red rail wearing a
+                      // dark badge; white is unambiguously "you are here",
+                      // and at 19.67:1 it is the highest contrast on the
+                      // site — the accent version measured 5.55:1.
+                      "bg-ink text-on-ink"
                     : // A colour shift alone left the target's edges
                       // invisible — you could see the label brighten but
                       // not what you were about to click. The tint draws
