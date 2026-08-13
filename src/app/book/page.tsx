@@ -10,6 +10,7 @@ import {
   countUpcomingBookings,
   listBookableClasses,
 } from "@/lib/booking/queries";
+import { getPlanState } from "@/lib/plans/queries";
 import { getUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -27,6 +28,23 @@ export default async function BookPage() {
    * Authorisation is checked where the data is read.
    */
   if (!user) redirect("/login?next=/book");
+
+  /**
+   * First-time members are asked which plan they are interested in before
+   * they get here, and asked exactly once — a row exists the moment they
+   * answer, including when the answer is "not yet".
+   *
+   * `available` is false until the migration has been applied by hand in
+   * the Supabase console, and this must not redirect in that window: it
+   * would put every existing member in front of a chooser that cannot save
+   * anything, with booking unreachable behind it. See lib/plans/queries.ts.
+   *
+   * Before ensureHorizon, deliberately. `redirect` throws, so anything
+   * above it that touches the database is work done for a page nobody is
+   * going to see.
+   */
+  const plan = await getPlanState();
+  if (plan.available && !plan.asked) redirect("/plans?next=%2Fbook");
 
   /**
    * Creates any classes that do not exist yet. Idempotent, and cheap in the

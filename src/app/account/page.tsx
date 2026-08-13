@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ClassAction } from "@/components/booking/ClassAction";
@@ -7,6 +8,7 @@ import {
   NextClassCard,
   NoUpcomingCard,
 } from "@/components/booking/NextClassCard";
+import { planBySlug, planDuration } from "@/content/plans";
 import { LEVEL_LABELS } from "@/content/schedule";
 import { site } from "@/content/site";
 import { signOut } from "@/lib/auth/actions";
@@ -23,6 +25,7 @@ import {
   formatClassTimeRange,
   relativeDayLabel,
 } from "@/lib/format/classTime";
+import { getPlanState } from "@/lib/plans/queries";
 import { getUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -99,12 +102,16 @@ export default async function AccountPage() {
    */
   const { name: fullName } = memberDisplayFrom(user);
 
-  const [upcoming, upcomingTotal, past, pastTotal] = await Promise.all([
-    listUpcomingBookings(),
-    countUpcomingBookings(),
-    listPastBookings(),
-    countPastBookings(),
-  ]);
+  const [upcoming, upcomingTotal, past, pastTotal, planState] =
+    await Promise.all([
+      listUpcomingBookings(),
+      countUpcomingBookings(),
+      listPastBookings(),
+      countPastBookings(),
+      getPlanState(),
+    ]);
+
+  const chosenPlan = planState.slug ? planBySlug(planState.slug) : undefined;
 
   /**
    * The next class is lifted out of the list and given the top of the
@@ -223,6 +230,49 @@ export default async function AccountPage() {
           </>
         )}
       </section>
+
+      {/*
+        Hidden entirely until the migration lands — see lib/plans/queries.ts.
+        A "Membership" heading over an error is worse than no heading.
+      */}
+      {planState.available ? (
+        <section aria-labelledby="plan-heading" className="mt-14">
+          <h2
+            id="plan-heading"
+            className="border-b border-border pb-3 font-mono text-[12px] tracking-widest text-text uppercase"
+          >
+            Membership
+          </h2>
+
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-divider py-4">
+            <div className="min-w-0">
+              <p className="text-sm text-text">
+                {chosenPlan
+                  ? `${chosenPlan.name} · ${planDuration(chosenPlan)}`
+                  : "No plan chosen yet"}
+              </p>
+              {/*
+                Said plainly, every time it is shown. A member who reads
+                "Advanced · 6 months" on their own account page and is
+                never told otherwise will reasonably believe they are on a
+                paid membership. Nobody has been charged and nothing has
+                been agreed; this is a note of what they said they wanted.
+              */}
+              <p className="mt-0.5 text-[13px] leading-snug text-text-3">
+                An interest, not a subscription — the gym sorts payment with
+                you in person.
+              </p>
+            </div>
+
+            <Link
+              href="/plans?next=%2Faccount"
+              className="flex min-h-11 shrink-0 items-center rounded-full border border-border px-5 font-mono text-[11px] tracking-[0.08em] text-text-2 uppercase transition-colors hover:border-accent hover:text-accent-strong"
+            >
+              {chosenPlan ? "Change" : "Choose"}
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       <section aria-labelledby="account-heading" className="mt-14">
         <h2

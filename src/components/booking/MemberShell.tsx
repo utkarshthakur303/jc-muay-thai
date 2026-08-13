@@ -55,7 +55,17 @@ export function MemberShell({
   upcomingCount = 0,
   children,
 }: {
-  current: "/book" | "/account";
+  /**
+   * "/plans" is not one of the tabs, and passing it hides them rather than
+   * marking none.
+   *
+   * That page stands in front of /book for a member who has not answered
+   * yet, and /book sends them straight back to it. A "Book a class" tab
+   * showing there would be a control that visibly does nothing when
+   * pressed — which is precisely the kind of thing the mockup's fake
+   * booking drawer was deleted for.
+   */
+  current: "/book" | "/account" | "/plans";
   heading: string;
   /** Classes the member has coming up. Shown on the "Your classes" tab. */
   upcomingCount?: number;
@@ -81,7 +91,10 @@ export function MemberShell({
           {heading.toUpperCase()}
         </h1>
 
-        <nav aria-label="Member area" className="mt-8">
+        <nav
+          aria-label="Member area"
+          className={`mt-8 ${current === "/plans" ? "hidden" : ""}`}
+        >
           <ul role="list" className="flex flex-wrap gap-2">
             {TABS.map((tab) => {
               const active = tab.href === current;

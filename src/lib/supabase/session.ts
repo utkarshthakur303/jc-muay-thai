@@ -13,7 +13,7 @@ import {
 } from "@/lib/auth/memberCookie";
 
 /** Routes that require a signed-in user. Prefix match. */
-const PROTECTED_PREFIXES = ["/account", "/admin", "/book"] as const;
+const PROTECTED_PREFIXES = ["/account", "/admin", "/book", "/plans"] as const;
 
 /** Auth routes a signed-in user should be bounced away from. */
 const AUTH_ROUTES = ["/login", "/signup", "/forgot-password"] as const;
