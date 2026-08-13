@@ -30,7 +30,7 @@ export function StatCard({
 }) {
   return (
     <TiltCard
-      className={`card-surface card-hover flex flex-col justify-center p-5 sm:p-6 lg:row-start-1 lg:p-[clamp(16px,2vw,28px)] ${className}`}
+      className={`card-surface card-gradient card-hover flex flex-col justify-center p-5 sm:p-6 lg:row-start-1 lg:p-[clamp(16px,2vw,28px)] ${className}`}
     >
       <p className="label-mono">{label}</p>
       <p className="mt-1.5 font-display text-5xl leading-none text-text">

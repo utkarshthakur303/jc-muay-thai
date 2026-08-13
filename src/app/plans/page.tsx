@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 
 import { MemberShell } from "@/components/booking/MemberShell";
 import { PlanPicker } from "@/components/plans/PlanPicker";
-import { plansAreConfirmed } from "@/content/plans";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { countUpcomingBookings } from "@/lib/booking/queries";
 import { getPlanState } from "@/lib/plans/queries";
@@ -57,26 +56,21 @@ export default async function PlansPage({
       </p>
 
       {/*
-        The draft notice. It renders itself out of existence the moment
-        every plan in content/plans.ts is marked confirmed, so nobody has
-        to remember to come back and delete it.
+        THE DRAFT NOTICE WAS REMOVED AT THE CLIENT'S REQUEST (2026-08-13),
+        having been added at their request two days earlier.
 
-        It is here because the plans below are invented — the gym has not
-        confirmed that it sells one, three and six month blocks or what
-        each covers. This site has real members on it, and the house rule
-        is that an unconfirmed fact is either withheld or labelled. It
-        cannot be withheld on the page whose entire subject it is.
+        Recorded rather than quietly deleted, because it changes what this
+        page asserts. The plans below are still invented — the gym has not
+        confirmed that it sells one, three and six month blocks, or what
+        any of them covers — and every one of them is still
+        `confirmed: false` in content/plans.ts. What has changed is that a
+        real member now reads them as finished.
+
+        Nothing here quotes a price, which is the guard that still holds:
+        the copy is a description that may turn out wrong, not a number
+        anybody can be held to. Getting the real plans from the gym is the
+        top item in MEMORY.md §8.
       */}
-      {!plansAreConfirmed ? (
-        <p className="mt-4 max-w-prose rounded-2xl border border-border bg-card px-4 py-3 text-[13px] leading-relaxed text-text-2">
-          <span className="font-mono text-[11px] tracking-widest text-accent-strong uppercase">
-            Draft ·{" "}
-          </span>
-          These plans are examples while the gym confirms its real
-          memberships. What each one includes may change, and no pricing has
-          been set — ask at the gym.
-        </p>
-      ) : null}
 
       <PlanPicker next={next} current={slug} />
 

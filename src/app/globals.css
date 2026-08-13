@@ -205,6 +205,18 @@
     rgb(255 59 48 / 0.35) 100%
   );
 
+  /* A themed card with a little surface to it — see the note on the
+     `card-gradient` utility for where the end stop comes from. The drift
+     is red-ward (R above B) rather than toward the blue-grey the base
+     card sits at, so it reads as the brand warming the surface rather
+     than as a cold cast. */
+  --card-gradient: linear-gradient(
+    145deg,
+    #121214 0%,
+    #171316 55%,
+    #1c1417 100%
+  );
+
   color-scheme: dark;
 }
 
@@ -267,6 +279,20 @@
     100deg,
     rgb(255 255 255 / 0.92) 20%,
     rgb(255 59 48 / 0.35) 100%
+  );
+
+  /* The same idea, and far more constrained than it looks.
+
+     Light mode has almost no room for this. --text-3 on a white card is
+     already only 5.14:1, so tinting the card spends the last of it: at
+     #f7edea that tone measures 4.47:1 and fails AA outright. #fdf7f5 is
+     where it stops — 4.85:1 at the worst stop, measured, not eyeballed.
+     Anyone deepening this tint has to re-run those numbers first. */
+  --card-gradient: linear-gradient(
+    145deg,
+    #ffffff 0%,
+    #fffbfa 55%,
+    #fdf7f5 100%
   );
 
   color-scheme: light;
@@ -535,6 +561,31 @@ html[data-member] .guest-only {
   border-radius: var(--radius-card);
   border: 1px solid var(--border);
   background-color: var(--card);
+}
+
+/* A themed card with a soft diagonal wash across it, drifting from the
+   card colour toward the brand red.
+
+   DELIBERATELY NOT PART OF `card-surface`. Seven components use that
+   utility — the schedule day cards, both contact cards, the stat tiles —
+   and putting the gradient in it would repaint most of the site off the
+   back of a request about two groups of cards. This is opt-in, and the
+   opting-in is the record of which cards were asked for.
+
+   WHERE THE END STOPS COME FROM, because they are not a taste call:
+
+   Every muted tone on these cards was measured against a FLAT card, and
+   a gradient moves the surface underneath them. Re-measured against the
+   worst stop of each — the darkest pixel in dark mode, the deepest tint
+   in light — and the light end is the binding constraint. `--text-3` on
+   a white card is already only 5.14:1, so there is barely any to spend:
+   at #f7edea it measures 4.47:1 and fails AA. #fdf7f5 holds it at
+   4.85:1. Dark mode has far more headroom and its tightest tone,
+   accent-strong, sits at 5.10:1.
+
+   Deepen either end and those numbers have to be re-run. */
+@utility card-gradient {
+  background-image: var(--card-gradient);
 }
 
 /* Same geometry, but the fill is a photograph rather than a themed

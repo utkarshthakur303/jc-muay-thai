@@ -63,7 +63,7 @@ export function PlanPicker({
                   label, bullet points and all, before saying "button".
                 */
                 aria-label={`Choose ${plan.name}, ${planDuration(plan)}`}
-                className={`flex w-full flex-col rounded-card border bg-card p-6 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`flex w-full flex-col rounded-card border bg-card card-gradient p-6 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                   isCurrent
                     ? "border-ink ring-2 ring-ink"
                     : "border-border hover:border-accent"

@@ -23,7 +23,7 @@ export function ClassLoadChart() {
   const peak = Math.max(...weeklyLoad.map((entry) => entry.count));
 
   return (
-    <TiltCard className="card-surface card-hover flex flex-col justify-center p-5 sm:p-6 lg:col-start-2 lg:col-span-2 lg:row-start-3 lg:p-[clamp(16px,2vw,28px)]">
+    <TiltCard className="card-surface card-gradient card-hover flex flex-col justify-center p-5 sm:p-6 lg:col-start-2 lg:col-span-2 lg:row-start-3 lg:p-[clamp(16px,2vw,28px)]">
       <div className="mb-3.5 flex items-baseline justify-between gap-4">
         <div>
           <p className="label-mono">Sessions</p>

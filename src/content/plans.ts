@@ -11,18 +11,24 @@
  * reason: a plausible invention is more dangerous than an obvious gap,
  * because nobody goes back to check it.
  *
- * Two guards on that:
+ * There were two guards on that. ONE OF THEM IS GONE:
  *
- *   1. `confirmed: false` on every plan, and the page renders a visible
- *      note saying so for as long as any plan is unconfirmed. Flip the
- *      flags when the gym confirms and the note disappears on its own —
- *      see `plansAreConfirmed` at the bottom.
+ *   1. ~~A visible "draft" note on /plans~~ — removed at the client's
+ *      request on 2026-08-13, having been added at their request on the
+ *      11th. Members now read these plans as finished. `confirmed: false`
+ *      below is therefore no longer wired to anything on screen; it stays
+ *      as the record that none of this has been confirmed, and as the
+ *      thing that tells the next person reading this file not to trust it.
  *
- *   2. NO PRICES. Not even placeholder ones. A duration that turns out to
- *      be wrong is an embarrassment; a price that turns out to be wrong is
- *      a number a member can hold the gym to, and this site has four real
- *      members on it. Payments were left out of v1 deliberately and the
- *      gym takes money in person, so the page says exactly that.
+ *   2. NO PRICES — and this one still holds. Not even placeholder ones. A
+ *      duration that turns out to be wrong is an embarrassment; a price
+ *      that turns out to be wrong is a number a member can hold the gym
+ *      to, and this site has four real members on it. Payments were left
+ *      out of v1 deliberately and the gym takes money in person, so the
+ *      page says exactly that.
+ *
+ * With the notice gone, the only remaining correction is getting the real
+ * plans from the gym. That is the top open item in MEMORY.md §8.
  *
  * What a plan is NOT: an entitlement. Choosing one grants nothing and
  * restricts nothing — a member who picks none can book precisely what a
@@ -99,13 +105,6 @@ export function isPlanSlug(value: unknown): value is PlanSlug {
 export function planBySlug(slug: PlanSlug): Plan | undefined {
   return plans.find((plan) => plan.slug === slug);
 }
-
-/**
- * Drives the draft notice on the plans page. Computed rather than a
- * constant so that confirming the plans is one edit per plan and nobody
- * has to remember there is a second switch somewhere.
- */
-export const plansAreConfirmed = plans.every((plan) => plan.confirmed);
 
 /** "1 month" / "3 months" — one place, so the cards and /account agree. */
 export function planDuration(plan: Plan): string {
