@@ -70,7 +70,7 @@ export function SidebarRail() {
                       // dark badge; white is unambiguously "you are here",
                       // and at 19.67:1 it is the highest contrast on the
                       // site — the accent version measured 5.55:1.
-                      "bg-ink text-on-ink"
+                      "bg-ink text-chalk"
                     : // A colour shift alone left the target's edges
                       // invisible — you could see the label brighten but
                       // not what you were about to click. The tint draws

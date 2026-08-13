@@ -167,14 +167,14 @@ export function GalleryGrid({ images }: { images: readonly GalleryImage[] }) {
               type="button"
               onClick={() => step(-1)}
               aria-label="Previous photograph"
-              className="flex size-11 items-center justify-center rounded-full border border-on-ink/30 text-on-ink transition-colors hover:border-accent hover:text-accent"
+              className="flex size-11 items-center justify-center rounded-full border border-chalk/30 text-chalk transition-colors hover:border-accent hover:text-accent"
             >
               <span aria-hidden>‹</span>
             </button>
 
             <p
               aria-hidden
-              className="min-w-16 text-center font-mono text-[11px] tracking-widest text-on-ink/70 tabular-nums"
+              className="min-w-16 text-center font-mono text-[11px] tracking-widest text-chalk/70 tabular-nums"
             >
               {index + 1} / {images.length}
             </p>
@@ -183,7 +183,7 @@ export function GalleryGrid({ images }: { images: readonly GalleryImage[] }) {
               type="button"
               onClick={() => step(1)}
               aria-label="Next photograph"
-              className="flex size-11 items-center justify-center rounded-full border border-on-ink/30 text-on-ink transition-colors hover:border-accent hover:text-accent"
+              className="flex size-11 items-center justify-center rounded-full border border-chalk/30 text-chalk transition-colors hover:border-accent hover:text-accent"
             >
               <span aria-hidden>›</span>
             </button>
@@ -192,7 +192,7 @@ export function GalleryGrid({ images }: { images: readonly GalleryImage[] }) {
               type="button"
               onClick={close}
               aria-label="Close gallery"
-              className="ml-2 flex min-h-11 items-center rounded-full border border-on-ink/30 px-5 font-mono text-[11px] tracking-[0.08em] text-on-ink uppercase transition-colors hover:border-accent hover:text-accent"
+              className="ml-2 flex min-h-11 items-center rounded-full border border-chalk/30 px-5 font-mono text-[11px] tracking-[0.08em] text-chalk uppercase transition-colors hover:border-accent hover:text-accent"
             >
               Close
             </button>

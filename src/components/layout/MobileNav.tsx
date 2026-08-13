@@ -69,7 +69,7 @@ export function MobileNav() {
                    state that differed between them would read as a bug on
                    whichever one you saw second. 19.67:1. */
                 className={`flex min-h-11 flex-col items-center justify-center gap-1 rounded-3xl py-1.5 transition-colors ${
-                  isActive ? "bg-ink text-on-ink" : "text-ink/85"
+                  isActive ? "bg-ink text-chalk" : "text-ink/85"
                 }`}
               >
                 <Icon name={section.icon} size={20} />

@@ -117,7 +117,7 @@ const SKIN: Record<Placement, { idle: string; open: string }> = {
   // missed rather than as a deliberate distinction.
   rail: {
     idle: "text-ink/85 hover:bg-ink/10 hover:text-ink",
-    open: "bg-ink text-on-ink",
+    open: "bg-ink text-chalk",
   },
   // On a themed surface, matched to the theme toggle and account chip
   // beside it so the three read as one cluster of controls.

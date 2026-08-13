@@ -38,22 +38,29 @@
      here, not a hunt for every `text-[#0B0B0C]` in the tree. */
   --color-ink: #0b0b0c;
 
-  /* The exact inverse: anything drawn ON an ink surface. That is the
-     active nav pill, the streak trigger while its panel is open, and a
-     selected day in the booking calendar — the three places the site
-     says "this one".
+  /* Chalk — ink's opposite number, and like ink it is a colour rather
+     than a position: it is the content ON an ink pill (the active nav
+     item, the streak trigger while open) and it is the FILL of a
+     selected day in the booking calendar, where ink becomes the
+     content. 19.67:1 either way round, the highest contrast on the site.
 
-     19.67:1 on ink, the highest contrast anywhere on the site. It is a
-     brand constant rather than a theme surface because an ink pill is
-     ink in both themes; the rail is accent-filled in light mode too.
+     It was briefly called --color-on-ink, which was a name that lied
+     the moment something needed a white surface — the same mistake
+     --color-crimson made before it became --danger. Named for what it
+     is, it survives being used in both directions.
 
-     Pure #ffffff and not the --color-on-photo off-white beside it:
-     that one is mixed toward the background to sit calmly over a
-     photograph, and this one is meant to be the brightest thing in its
-     pill. Measured, not assumed — white on the ACCENT fill would have
-     been 3.55:1 and failed AA, which is why a selected day changes its
-     fill to ink rather than keeping the red. */
-  --color-on-ink: #ffffff;
+     A brand constant rather than a theme surface, because both pairings
+     are the same in light and dark: the rail is accent-filled in light
+     mode too, and a selected day is white in both.
+
+     Pure #ffffff and not the --color-on-photo off-white beside it: that
+     one is mixed toward the background to sit calmly over a photograph,
+     and this one is meant to be the brightest thing in its cell.
+
+     Measured, not assumed — white on the ACCENT fill would have been
+     3.55:1 and failed AA, which is why a selected day pairs chalk with
+     ink rather than keeping the red. */
+  --color-chalk: #ffffff;
 
   /* On-photo — text and icons sitting over a photograph. Photographs
      are dark in BOTH themes (they are content, not surfaces), so

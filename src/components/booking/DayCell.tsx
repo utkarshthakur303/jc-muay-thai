@@ -71,11 +71,29 @@ export function DayCell({
       */
       className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl border transition-colors sm:min-h-16 ${
         selected
-          ? // Ink fill, white content. White on the ACCENT fill this used
-            // to be measured 3.55:1 and failed AA on a 14px number; on ink
-            // it is 19.67:1, and it now matches the active nav pill so the
-            // whole site says "this one" in one voice.
-            "border-ink bg-ink text-on-ink"
+          ? /*
+               A white cell with an ink number, ringed in ink.
+
+               THE RING IS NOT DECORATION. `--card` is #ffffff in light
+               mode, so a white cell on it measures 1.00:1 — the selected
+               day would be perfectly invisible, which is the one state
+               that must never be. The ring carries the edge at 19.67:1
+               against the card and satisfies WCAG 1.4.11's 3:1 for a
+               non-text control. In dark mode the card is #121214 and the
+               white fill does that job on its own; the ring costs nothing
+               there.
+
+               `ring` rather than a thicker border, because a second
+               border-width utility in this string would collide with the
+               `border` above it — Tailwind orders utilities by variant,
+               not by position, so which one wins is a coin toss. The ring
+               is a box-shadow and cannot conflict.
+
+               White on the ACCENT fill, which is what was first asked
+               for, measured 3.55:1 and failed AA on a 14px number. This
+               keeps the white and clears it at 19.67:1.
+            */
+            "border-ink bg-chalk text-ink ring-2 ring-ink"
           : selectable
             ? "border-border text-text hover:border-accent hover:text-accent-strong"
             : "cursor-not-allowed border-transparent text-text-3"
@@ -85,7 +103,7 @@ export function DayCell({
         <span
           aria-hidden
           className={`font-mono text-[10px] leading-none tracking-widest uppercase ${
-            selected ? "text-on-ink/75" : "text-text-3"
+            selected ? "text-ink/70" : "text-text-3"
           }`}
         >
           {weekdayLabel}
@@ -102,7 +120,7 @@ export function DayCell({
         aria-hidden
         className={`font-mono text-[10px] leading-none ${
           selected
-            ? "text-on-ink/75"
+            ? "text-ink/70"
             : selectable
               ? "text-text-2"
               : "text-text-3"
