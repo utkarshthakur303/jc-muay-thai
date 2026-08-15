@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AdminShell } from "@/components/admin/AdminShell";
+import { CancelClassForm } from "@/components/admin/CancelClassForm";
 import { LEVEL_LABELS } from "@/content/schedule";
 import { site } from "@/content/site";
 import { getClassRoster, type RosterEntry } from "@/lib/admin/classes";
@@ -65,6 +66,29 @@ export default async function ClassRosterPage({
 
   const { klass, attending, cancelled } = roster;
 
+  /**
+   * Decided here rather than in the browser. A page rendered at 6:58 and
+   * left open says "cancel" at 7:05 whichever clock it asks, so the button
+   * is never the guarantee — the RLS policy's `starts_at > now()` is, and
+   * this only decides whether to offer a control that would be refused.
+   */
+  const past = new Date(klass.startsAt).getTime() <= Date.now();
+
+  /**
+   * One mail addressed to everyone still on the class, with the addresses
+   * in BCC so no member is shown another member's email.
+   *
+   * This is the fallback that makes the whole cancellation flow honest.
+   * Automatic email needs a Resend key and a verified sender, neither of
+   * which the gym has yet — so today the reliable path is the owner's own
+   * mail client, and it should be one tap rather than sixteen addresses
+   * copied out of a table by hand.
+   */
+  const bccAll = attending.map((entry) => entry.email).filter(Boolean).join(",");
+  const mailAllHref = `mailto:?bcc=${encodeURIComponent(bccAll)}&subject=${encodeURIComponent(
+    `${LEVEL_LABELS[klass.level]} — ${formatClassDateLong(klass.startsAt, site.timeZone)}`,
+  )}`;
+
   return (
     <AdminShell
       current="/admin/classes"
@@ -94,10 +118,27 @@ export default async function ClassRosterPage({
         </span>
       </div>
 
+      <CancelClassForm
+        occurrenceId={klass.id}
+        cancelled={klass.cancelled}
+        past={past}
+        attendees={attending.length}
+      />
+
       <section className="mt-10">
-        <h2 className="font-mono text-[11px] tracking-[0.12em] text-text-3 uppercase">
-          Coming ({attending.length})
-        </h2>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <h2 className="font-mono text-[11px] tracking-[0.12em] text-text-3 uppercase">
+            Coming ({attending.length})
+          </h2>
+          {attending.length > 0 ? (
+            <a
+              href={mailAllHref}
+              className="inline-flex min-h-11 items-center font-mono text-[11px] tracking-[0.08em] text-text-2 uppercase underline-offset-4 transition-colors hover:text-accent-strong hover:underline"
+            >
+              Email everyone
+            </a>
+          ) : null}
+        </div>
         {attending.length === 0 ? (
           <p className="mt-3 text-sm leading-relaxed text-text-2">
             Nobody has booked this class yet.

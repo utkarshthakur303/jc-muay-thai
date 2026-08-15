@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import { AdminShell } from "@/components/admin/AdminShell";
+import { countWaitingEnquiries } from "@/lib/admin/enquiries";
 import { requireAdmin } from "@/lib/admin/guard";
 import { getAdminOverview } from "@/lib/admin/queries";
 
@@ -39,7 +42,10 @@ function StatTile({
 export default async function AdminOverviewPage() {
   await requireAdmin();
 
-  const overview = await getAdminOverview();
+  const [overview, waiting] = await Promise.all([
+    getAdminOverview(),
+    countWaitingEnquiries(),
+  ]);
 
   /**
    * Members who have never been asked which plan they want. Worth calling
@@ -73,6 +79,30 @@ export default async function AdminOverviewPage() {
           note="Members who picked a plan. An interest, not a payment."
         />
       </div>
+
+      {/*
+        A link, not a tile, and only when there is something to do.
+        Somebody waiting on a reply is the one thing on this page that is
+        an instruction rather than a statistic, and a number in a grid of
+        four other numbers reads as neither.
+      */}
+      {waiting > 0 ? (
+        <Link
+          href="/admin/enquiries"
+          className="card-surface mt-8 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 rounded-card border border-accent px-5 py-4 text-sm leading-relaxed transition-colors hover:border-accent-strong"
+        >
+          <strong className="font-semibold text-text">
+            {waiting} {waiting === 1 ? "message is" : "messages are"} waiting
+            for a reply
+          </strong>
+          <span className="text-text-2">
+            from the contact form on the website.
+          </span>
+          <span aria-hidden className="ml-auto font-mono text-[11px] text-text-3">
+            →
+          </span>
+        </Link>
+      ) : null}
 
       {unanswered > 0 ? (
         <p className="mt-8 max-w-prose text-sm leading-relaxed text-text-2">

@@ -101,6 +101,21 @@ export function formatClassTimeRange(
   return `${head}–${clockLabel(to.hour, to.minute)} ${meridiem(to.hour)}`;
 }
 
+/**
+ * "Tue 12 Aug, 4:30 PM" — one instant, date and time together.
+ *
+ * For things that happened at a moment rather than over a span: an enquiry
+ * arriving, a message being marked as dealt with. Lives here beside the
+ * class formatters because it shares their clock helpers, and — more to the
+ * point — their zone rule. An enquiry timestamp rendered in the server's
+ * zone would read four hours off on Vercel, and the gym would be looking
+ * for a message it thought arrived tomorrow.
+ */
+export function formatInstant(iso: string, timeZone: string): string {
+  const { hour, minute } = clockParts(iso, timeZone);
+  return `${formatClassDate(iso, timeZone)}, ${clockLabel(hour, minute)} ${meridiem(hour)}`;
+}
+
 /** Stable key for grouping classes by gym-local calendar day. */
 export function classDayKey(iso: string, timeZone: string): string {
   const { year, month, day } = gymCivilDate(new Date(iso), timeZone);
