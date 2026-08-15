@@ -37,7 +37,7 @@ export type AdminOverview = {
  * point where "member" actually means something, rather than by polluting
  * the mirror table with a role column it would then have to keep current.
  */
-async function adminIds(): Promise<string[]> {
+export async function adminIds(): Promise<string[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("admins").select("user_id");
   if (error || !data) return [];

@@ -22,7 +22,11 @@ import { site } from "@/content/site";
  * advertising a page that 404s is worse than a short nav, and every item
  * here is reachable today.
  */
-const NAV = [{ href: "/admin", label: "Overview" }] as const;
+const NAV = [
+  { href: "/admin", label: "Overview" },
+  { href: "/admin/classes", label: "Classes" },
+  { href: "/admin/members", label: "Members" },
+] as const;
 
 export function AdminShell({
   current,
@@ -42,7 +46,7 @@ export function AdminShell({
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 sm:px-8">
           <Link
             href="/"
-            className="font-mono text-[11px] tracking-widest text-text-2 uppercase transition-colors hover:text-accent-strong"
+            className="inline-flex min-h-11 items-center font-mono text-[11px] tracking-widest text-text-2 uppercase transition-colors hover:text-accent-strong"
           >
             ← {site.name}
           </Link>
