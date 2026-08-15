@@ -79,10 +79,30 @@ function planAnswerFrom(
  * so a query reads nicer would be adding a schema constraint for the
  * benefit of a SELECT.
  */
-export async function listMembers(): Promise<AdminMember[]> {
+/**
+ * Makes a search box safe to interpolate into a PostgREST filter.
+ *
+ * The `or=` parameter is a small expression language, not a value slot:
+ * commas separate terms, parentheses group them, and a backslash escapes.
+ * A member typing "O'Brien, Jim" or a bare `(` would otherwise produce a
+ * malformed filter — a 400 at best, and at worst a filter that means
+ * something other than what was typed. `%` and `*` are the wildcards, so
+ * they are stripped too rather than letting the box do glob matching
+ * nobody asked for.
+ *
+ * Not an injection defence — PostgREST parameterises the values — but the
+ * difference between a search that works on real names and one that 400s
+ * on an apostrophe.
+ */
+function sanitizeSearch(raw: string): string {
+  return raw.replace(/[(),*%\\]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+}
+
+export async function listMembers(search = ""): Promise<AdminMember[]> {
   const supabase = await createClient();
   const admins = await adminIds();
   const nowIso = new Date().toISOString();
+  const term = sanitizeSearch(search);
 
   let profileQuery = supabase
     .from("profiles")
@@ -94,6 +114,19 @@ export async function listMembers(): Promise<AdminMember[]> {
 
   if (admins.length > 0) {
     profileQuery = profileQuery.not("user_id", "in", `(${admins.join(",")})`);
+  }
+
+  /**
+   * Name OR email, because the gym knows members by both — a face in the
+   * room and an address on a receipt. Matched anywhere in the string
+   * rather than as a prefix: "smith" should find "John Smith", and
+   * searching by email domain is a genuinely useful way to spot a family
+   * sharing one.
+   */
+  if (term) {
+    profileQuery = profileQuery.or(
+      `full_name.ilike.*${term}*,email.ilike.*${term}*`,
+    );
   }
 
   const [profiles, plans, bookings] = await Promise.all([

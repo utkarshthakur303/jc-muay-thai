@@ -40,10 +40,16 @@ function PlanBadge({ plan }: { plan: PlanAnswer }) {
   );
 }
 
-export default async function AdminMembersPage() {
+export default async function AdminMembersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   await requireAdmin();
 
-  const members = await listMembers();
+  const { q } = await searchParams;
+  const query = q?.trim() ?? "";
+  const members = await listMembers(query);
 
   return (
     <AdminShell
@@ -51,12 +57,48 @@ export default async function AdminMembersPage() {
       heading="Members"
       lead="Everyone with an account. A plan is a stated interest — it grants nothing and blocks nothing."
     >
+      {/*
+        A plain GET form, not a client-side filter.
+
+        Filtering an array already on the page would be instant and would
+        also be a lie the moment the directory outgrows one page — the box
+        would search the visible 500 and quietly miss the rest. Searching
+        in Postgres is correct at any size, works with JavaScript off, and
+        leaves a shareable URL.
+      */}
+      <form method="get" role="search" className="mt-8 flex flex-wrap gap-2">
+        <input
+          type="search"
+          name="q"
+          defaultValue={query}
+          placeholder="Search by name or email"
+          aria-label="Search members by name or email"
+          className="min-h-11 min-w-0 flex-1 rounded-full border border-border bg-input-bg px-5 text-sm text-text placeholder:text-text-3 focus:border-accent focus:outline-none"
+        />
+        <button
+          type="submit"
+          className="min-h-11 shrink-0 rounded-full bg-accent px-6 font-mono text-[11px] tracking-[0.08em] text-ink uppercase transition-colors hover:bg-accent-hover"
+        >
+          Search
+        </button>
+        {query ? (
+          <Link
+            href="/admin/members"
+            className="flex min-h-11 shrink-0 items-center rounded-full border border-border px-5 font-mono text-[11px] tracking-[0.08em] text-text-2 uppercase transition-colors hover:border-accent hover:text-accent-strong"
+          >
+            Clear
+          </Link>
+        ) : null}
+      </form>
+
       {members.length === 0 ? (
         <p className="mt-10 text-sm leading-relaxed text-text-2">
-          No members yet.
+          {query
+            ? `No members match “${query}”.`
+            : "No members yet."}
         </p>
       ) : (
-        <ul role="list" className="mt-10 flex flex-col gap-2">
+        <ul role="list" className="mt-6 flex flex-col gap-2">
           {members.map((member) => (
             <li key={member.userId}>
               <Link
