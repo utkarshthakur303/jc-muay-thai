@@ -2,15 +2,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AdminShell } from "@/components/admin/AdminShell";
+import { QuoteForm } from "@/components/admin/QuoteForm";
 import { planBySlug, planDuration } from "@/content/plans";
 import { LEVEL_LABELS } from "@/content/schedule";
 import { site } from "@/content/site";
 import { requireAdmin } from "@/lib/admin/guard";
 import { getMemberDetail } from "@/lib/admin/members";
+import { getQuote } from "@/lib/admin/quotes";
 import {
   formatClassDate,
   formatClassTimeRange,
 } from "@/lib/format/classTime";
+import { formatMoney } from "@/lib/format/money";
 
 /**
  * One member: who they are, what they said they wanted, what they booked.
@@ -34,8 +37,26 @@ export default async function AdminMemberPage({
   if (!detail) notFound();
 
   const { member, bookings } = detail;
-  const plan = member.plan.state === "chosen" ? planBySlug(member.plan.slug) : null;
+  // `?? null` so there is one absent value rather than two. `planBySlug`
+  // returns undefined for a slug the content file no longer knows, which
+  // means the same thing here as "they never chose one".
+  const plan =
+    member.plan.state === "chosen"
+      ? (planBySlug(member.plan.slug) ?? null)
+      : null;
   const nowIso = new Date().toISOString();
+
+  const quote = await getQuote(userId);
+
+  /**
+   * A quote snapshots the plan it was agreed for, so a member who has
+   * since changed their mind leaves a figure attached to the wrong thing.
+   * Surfaced rather than silently re-labelled: "$300 for Advanced" when it
+   * was agreed for Basic is the kind of wrong number that gets read aloud.
+   */
+  const quotedPlan = quote ? planBySlug(quote.planSlug) : null;
+  const quoteIsStale =
+    quote !== null && plan !== null && quote.planSlug !== plan.slug;
 
   return (
     <AdminShell
@@ -95,6 +116,40 @@ export default async function AdminMemberPage({
           </p>
         </div>
       </div>
+
+      {quoteIsStale && quotedPlan ? (
+        <p className="mt-8 max-w-prose rounded-card border border-danger px-5 py-4 text-sm leading-relaxed text-text">
+          <strong className="font-semibold">This quote is for a plan they no longer want.</strong>{" "}
+          It was agreed for {quotedPlan.name} at {formatMoney(quote.finalCents)}, and
+          they have since switched to {plan?.name}. Re-quote it below, or clear it.
+        </p>
+      ) : null}
+
+      {plan ? (
+        <QuoteForm
+          userId={member.userId}
+          planSlug={plan.slug}
+          planName={plan.name}
+          quote={quote}
+        />
+      ) : (
+        <section className="mt-12">
+          <h2 className="font-mono text-[11px] tracking-[0.12em] text-text-3 uppercase">
+            Quote
+          </h2>
+          {/*
+            No plan, no quote box. A price is quoted *for* something, and a
+            figure with no plan attached is the beginning of exactly the
+            confusion this whole feature is arranged to avoid.
+          */}
+          <p className="mt-3 max-w-prose text-sm leading-relaxed text-text-2">
+            {member.plan.state === "declined"
+              ? "This member has been asked and chose to decide later, so there is no plan to price yet."
+              : "This member has never been asked which plan they want, so there is no plan to price yet."}{" "}
+            They can pick one from their own account page at any time.
+          </p>
+        </section>
+      )}
 
       <section className="mt-12">
         <h2 className="font-mono text-[11px] tracking-[0.12em] text-text-3 uppercase">

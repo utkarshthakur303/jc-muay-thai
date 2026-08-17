@@ -16,11 +16,19 @@ import { createClient } from "@/lib/supabase/server";
  */
 
 /**
+ * Ten to a page, at the client's request.
+ *
+ * Not merely a slice of a list already fetched: the count, the ordering
+ * and the booking tallies below are all built around the ten rows actually
+ * being shown, so the work does not grow with the size of the directory.
+ */
+export const MEMBERS_PER_PAGE = 10;
+
+/**
  * Bounds. This gym has four members and 337 occurrences; these exist so
  * that a directory which one day has two thousand members degrades into a
  * truncated page rather than an unbounded query that times out.
  */
-const MEMBER_PAGE_SIZE = 500;
 const BOOKING_SCAN_LIMIT = 2000;
 const HISTORY_PAGE_SIZE = 100;
 
@@ -98,48 +106,110 @@ function sanitizeSearch(raw: string): string {
   return raw.replace(/[(),*%\\]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
 
-export async function listMembers(search = ""): Promise<AdminMember[]> {
+export type MemberPage = {
+  readonly members: readonly AdminMember[];
+  /** Everyone matching the search, not just this page. */
+  readonly total: number;
+  /** 1-based, and already clamped to something that exists. */
+  readonly page: number;
+  readonly pageCount: number;
+};
+
+export async function listMembers(
+  search = "",
+  requestedPage = 1,
+): Promise<MemberPage> {
   const supabase = await createClient();
   const admins = await adminIds();
   const nowIso = new Date().toISOString();
   const term = sanitizeSearch(search);
 
-  let profileQuery = supabase
-    .from("profiles")
-    .select("user_id,full_name,email,created_at")
-    // Named members sort alphabetically; the nameless fall to the bottom
-    // rather than heading the list under a blank.
-    .order("full_name", { ascending: true, nullsFirst: false })
-    .limit(MEMBER_PAGE_SIZE);
+  /**
+   * Built twice: once to count, once to fetch. Every filter has to be
+   * applied to both, so the query is a function rather than a value —
+   * a filter added to one and forgotten on the other is a pager that
+   * says "Page 1 of 7" over three pages of results.
+   */
+  const build = (head: boolean) => {
+    let query = supabase
+      .from("profiles")
+      .select("user_id,full_name,email,created_at", {
+        count: "exact",
+        head,
+      })
+      // Named members sort alphabetically; the nameless fall to the bottom
+      // rather than heading the list under a blank.
+      .order("full_name", { ascending: true, nullsFirst: false })
+      /**
+       * The tie-breaker, and it is what makes paging correct rather than
+       * merely plausible. Two members called Alex sort equal, and Postgres
+       * is under no obligation to order equal rows the same way twice — so
+       * without a unique second key one of them can appear on both page 1
+       * and page 2, or on neither. Unnoticeable with four members and
+       * guaranteed to bite later.
+       */
+      .order("user_id", { ascending: true });
 
-  if (admins.length > 0) {
-    profileQuery = profileQuery.not("user_id", "in", `(${admins.join(",")})`);
+    if (admins.length > 0) {
+      query = query.not("user_id", "in", `(${admins.join(",")})`);
+    }
+
+    /**
+     * Name OR email, because the gym knows members by both — a face in the
+     * room and an address on a receipt. Matched anywhere in the string
+     * rather than as a prefix: "smith" should find "John Smith", and
+     * searching by email domain is a genuinely useful way to spot a family
+     * sharing one.
+     */
+    if (term) {
+      query = query.or(`full_name.ilike.*${term}*,email.ilike.*${term}*`);
+    }
+
+    return query;
+  };
+
+  const { count } = await build(true);
+  const total = count ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / MEMBERS_PER_PAGE));
+
+  /**
+   * Clamped rather than trusted. `?page=999` and `?page=-3` are both one
+   * keystroke away in the address bar, and an unclamped `range()` returns
+   * an empty list that reads as "no members" instead of "no such page".
+   */
+  const page = Math.min(Math.max(1, Math.trunc(requestedPage) || 1), pageCount);
+  const from = (page - 1) * MEMBERS_PER_PAGE;
+
+  const profiles = await build(false).range(from, from + MEMBERS_PER_PAGE - 1);
+
+  if (profiles.error || !profiles.data) {
+    return { members: [], total: 0, page: 1, pageCount: 1 };
+  }
+
+  const pageIds = profiles.data.map((row) => asString(row.user_id)).filter(Boolean);
+
+  if (pageIds.length === 0) {
+    return { members: [], total, page, pageCount };
   }
 
   /**
-   * Name OR email, because the gym knows members by both — a face in the
-   * room and an address on a receipt. Matched anywhere in the string
-   * rather than as a prefix: "smith" should find "John Smith", and
-   * searching by email domain is a genuinely useful way to spot a family
-   * sharing one.
+   * Plans and bookings for the ten people on screen, not for everybody.
+   *
+   * This is the part of pagination that actually matters. Slicing the
+   * rendered rows would have left these two queries reading the whole
+   * table on every page load — the directory would look paginated and
+   * cost the same as before. `.in(...)` on the page's ids means the work
+   * stays flat however large the gym gets.
    */
-  if (term) {
-    profileQuery = profileQuery.or(
-      `full_name.ilike.*${term}*,email.ilike.*${term}*`,
-    );
-  }
-
-  const [profiles, plans, bookings] = await Promise.all([
-    profileQuery,
-    supabase.from("member_plans").select("user_id,plan_slug"),
+  const [plans, bookings] = await Promise.all([
+    supabase.from("member_plans").select("user_id,plan_slug").in("user_id", pageIds),
     supabase
       .from("bookings")
       .select("user_id,class_occurrences!inner(starts_at)")
       .eq("status", "booked")
+      .in("user_id", pageIds)
       .limit(BOOKING_SCAN_LIMIT),
   ]);
-
-  if (profiles.error || !profiles.data) return [];
 
   const planByUser = new Map<string, { plan_slug?: unknown }>();
   for (const row of plans.data ?? []) {
@@ -166,7 +236,7 @@ export async function listMembers(search = ""): Promise<AdminMember[]> {
     bucket.set(userId, (bucket.get(userId) ?? 0) + 1);
   }
 
-  return profiles.data.map((row) => {
+  const members = profiles.data.map((row) => {
     const userId = asString(row.user_id);
     return {
       userId,
@@ -178,6 +248,8 @@ export async function listMembers(search = ""): Promise<AdminMember[]> {
       pastBookings: past.get(userId) ?? 0,
     };
   });
+
+  return { members, total, page, pageCount };
 }
 
 export type MemberBooking = {

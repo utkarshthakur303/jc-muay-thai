@@ -3,7 +3,11 @@ import Link from "next/link";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { planBySlug } from "@/content/plans";
 import { requireAdmin } from "@/lib/admin/guard";
-import { listMembers, type PlanAnswer } from "@/lib/admin/members";
+import {
+  listMembers,
+  MEMBERS_PER_PAGE,
+  type PlanAnswer,
+} from "@/lib/admin/members";
 
 /**
  * The member directory.
@@ -40,16 +44,95 @@ function PlanBadge({ plan }: { plan: PlanAnswer }) {
   );
 }
 
+/**
+ * Previous / next, as links.
+ *
+ * Links rather than buttons because a page number belongs in the URL: the
+ * gym can bookmark page 3 of a search, the back button does what it says,
+ * and the whole thing works before any JavaScript has loaded. A pager
+ * built from onClick handlers has none of those properties and looks
+ * identical.
+ */
+function Pager({
+  page,
+  pageCount,
+  query,
+}: {
+  page: number;
+  pageCount: number;
+  query: string;
+}) {
+  // The search has to survive paging, or page 2 of "smith" is page 2 of
+  // everybody — the classic way a filtered list quietly stops being
+  // filtered.
+  const href = (target: number) => {
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (target > 1) params.set("page", String(target));
+    const suffix = params.toString();
+    return suffix ? `/admin/members?${suffix}` : "/admin/members";
+  };
+
+  const step =
+    "flex min-h-11 items-center rounded-full border px-5 font-mono text-[11px] tracking-[0.08em] uppercase transition-colors";
+
+  return (
+    <nav
+      aria-label="Member directory pages"
+      className="mt-6 flex flex-wrap items-center gap-3"
+    >
+      {page > 1 ? (
+        <Link href={href(page - 1)} rel="prev" className={`${step} border-border text-text-2 hover:border-accent hover:text-accent-strong`}>
+          ← Previous
+        </Link>
+      ) : (
+        /*
+          Rendered as a disabled span, not omitted. A pager whose controls
+          move as you page through it is one where "Next" ends up under the
+          thumb that was aiming for "Previous".
+        */
+        <span aria-disabled className={`${step} border-divider text-text-3 opacity-55`}>
+          ← Previous
+        </span>
+      )}
+
+      <span className="font-mono text-[12px] tabular-nums text-text-2">
+        Page {page} of {pageCount}
+      </span>
+
+      {page < pageCount ? (
+        <Link href={href(page + 1)} rel="next" className={`${step} border-border text-text-2 hover:border-accent hover:text-accent-strong`}>
+          Next →
+        </Link>
+      ) : (
+        <span aria-disabled className={`${step} border-divider text-text-3 opacity-55`}>
+          Next →
+        </span>
+      )}
+    </nav>
+  );
+}
+
 export default async function AdminMembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   await requireAdmin();
 
-  const { q } = await searchParams;
+  const { q, page: rawPage } = await searchParams;
   const query = q?.trim() ?? "";
-  const members = await listMembers(query);
+  // Anything unparseable means page 1. `listMembers` clamps the rest, so a
+  // hand-typed `?page=999` lands on the last real page rather than on an
+  // empty list that reads as "no members".
+  const requested = Number.parseInt(rawPage ?? "1", 10);
+  const { members, total, page, pageCount } = await listMembers(
+    query,
+    Number.isNaN(requested) ? 1 : requested,
+  );
+
+  const first = (page - 1) * MEMBERS_PER_PAGE + 1;
+  const last = first + members.length - 1;
 
   return (
     <AdminShell
@@ -98,7 +181,21 @@ export default async function AdminMembersPage({
             : "No members yet."}
         </p>
       ) : (
-        <ul role="list" className="mt-6 flex flex-col gap-2">
+        <>
+        {/*
+          Which slice of what, said in words. "Page 2 of 4" alone does not
+          tell the gym whether the person they are looking for is behind
+          them or ahead, and a search that matched 3 of 40 members should
+          say 3 out loud.
+        */}
+        <p className="mt-6 font-mono text-[12px] tabular-nums text-text-3">
+          {total <= MEMBERS_PER_PAGE
+            ? `${total} ${total === 1 ? "member" : "members"}`
+            : `${first}–${last} of ${total}`}
+          {query ? ` matching “${query}”` : ""}
+        </p>
+
+        <ul role="list" className="mt-3 flex flex-col gap-2">
           {members.map((member) => (
             <li key={member.userId}>
               <Link
@@ -136,6 +233,11 @@ export default async function AdminMembersPage({
             </li>
           ))}
         </ul>
+
+        {pageCount > 1 ? (
+          <Pager page={page} pageCount={pageCount} query={query} />
+        ) : null}
+        </>
       )}
     </AdminShell>
   );

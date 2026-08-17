@@ -25,6 +25,16 @@ export type AdminActionState = {
    * reporting an unqualified success it cannot vouch for.
    */
   notifyFailed?: boolean;
+  /**
+   * The saved total, in cents, read back off the database's generated
+   * column rather than the figure the form was showing.
+   *
+   * Carried so a save can confirm with the number Postgres actually holds.
+   * If the form's running total and this ever disagreed, the screen that
+   * matters is the one the owner reads a price off — so it shows the
+   * authoritative one the moment there is one.
+   */
+  finalCents?: number;
 };
 
 export const initialAdminState: AdminActionState = { status: "idle" };

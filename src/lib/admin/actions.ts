@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { isPlanSlug } from "@/content/plans";
 import { LEVELS, type LevelId } from "@/content/schedule";
 import { notifyCancellation, type NoticeKind } from "@/lib/admin/notify";
-import { createClient } from "@/lib/supabase/server";
+import { finalCents, type DiscountKind } from "@/lib/admin/quote";
+import { parseMoneyToCents } from "@/lib/format/money";
+import { createClient, getUser } from "@/lib/supabase/server";
 // Type-only, and it must stay that way: a "use server" module may export
 // nothing but async functions. See lib/admin/state.ts.
 import type { AdminActionState } from "@/lib/admin/state";
@@ -293,4 +296,209 @@ export async function setEnquiryHandled(
     status: "success",
     message: handled ? "Marked as dealt with." : "Back in the queue.",
   };
+}
+
+/* ---------------------------------------------------------------
+   WHAT A MEMBER HAS BEEN QUOTED
+
+   Money, and therefore the most carefully validated thing in this
+   file. Every rule below is also a check constraint on
+   `member_quotes` — these produce the sentence, those make the rule
+   true for anything that ever writes the table.
+   --------------------------------------------------------------- */
+
+const userIdSchema = z.string().uuid();
+
+const quoteNoteSchema = z
+  .string()
+  .trim()
+  .max(200, "Keep the note under 200 characters.")
+  .optional();
+
+/**
+ * Reads the discount out of the form, in whichever of its two shapes the
+ * owner picked.
+ *
+ * A percentage is a whole number of percent; a fixed discount is money and
+ * goes through the same parser as the price, so "$30" and "30.00" both
+ * work. Returning a message rather than a number keeps the reason specific
+ * — "that is not a number" and "you cannot discount more than the price"
+ * are different problems and a single "invalid" helps with neither.
+ */
+function readDiscount(
+  kind: DiscountKind,
+  raw: string,
+  priceCents: number,
+): { value: number } | { error: string } {
+  const text = raw.trim();
+  if (text === "") return { value: 0 };
+
+  if (kind === "percent") {
+    if (!/^\d{1,3}$/.test(text)) {
+      return { error: "Enter the discount as a whole number of percent." };
+    }
+    const value = Number(text);
+    if (value > 100) return { error: "A discount cannot be more than 100%." };
+    return { value };
+  }
+
+  const cents = parseMoneyToCents(text);
+  if (cents === null) return { error: "That discount is not an amount." };
+  if (cents > priceCents) {
+    return { error: "The discount is more than the price." };
+  }
+  return { value: cents };
+}
+
+export async function saveQuote(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const user = await getUser();
+  if (!user) return { status: "error", message: "Your session has expired." };
+
+  const parsedUser = userIdSchema.safeParse(formData.get("userId"));
+  if (!parsedUser.success) {
+    return { status: "error", message: "That member could not be identified." };
+  }
+
+  const planSlug = formData.get("planSlug");
+  if (!isPlanSlug(planSlug)) {
+    // The form only offers the plan the member actually chose, so this is
+    // reachable only by posting past it — or by the plan list changing
+    // under a page left open.
+    return {
+      status: "error",
+      message: "That plan no longer exists. Reload the page and try again.",
+    };
+  }
+
+  const priceCents = parseMoneyToCents(String(formData.get("price") ?? ""));
+  if (priceCents === null) {
+    return { status: "error", message: "That price is not an amount." };
+  }
+  if (priceCents > 1_000_000) {
+    // Matches member_quotes_price_sane. A rail against a slipped decimal
+    // point, not a business rule about what a gym may charge.
+    return { status: "error", message: "That price looks like a slip — check the decimal point." };
+  }
+
+  const kind: DiscountKind =
+    formData.get("discountKind") === "amount" ? "amount" : "percent";
+
+  const discount = readDiscount(
+    kind,
+    String(formData.get("discountValue") ?? ""),
+    priceCents,
+  );
+  if ("error" in discount) return { status: "error", message: discount.error };
+
+  const parsedNote = quoteNoteSchema.safeParse(formData.get("note") ?? undefined);
+  if (!parsedNote.success) {
+    return {
+      status: "error",
+      message: parsedNote.error.issues[0]?.message ?? "That note could not be used.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  /**
+   * upsert on the primary key, because re-quoting is an edit of the one
+   * current figure rather than a second row. `final_cents` is deliberately
+   * absent from this payload — it is a generated column, and sending it
+   * would be Postgres refusing the write, correctly.
+   */
+  const { data, error } = await supabase
+    .from("member_quotes")
+    .upsert(
+      {
+        user_id: parsedUser.data,
+        plan_slug: planSlug,
+        price_cents: priceCents,
+        discount_kind: kind,
+        discount_value: discount.value,
+        note: parsedNote.data?.trim() || null,
+        updated_at: new Date().toISOString(),
+        updated_by: user.id,
+      },
+      { onConflict: "user_id" },
+    )
+    .select("final_cents")
+    .maybeSingle();
+
+  if (error) {
+    return {
+      status: "error",
+      message: messageForCode(
+        error.code,
+        "Something went wrong saving that. Please try again.",
+      ),
+    };
+  }
+
+  if (!data) {
+    // Not the class message: the policy that refused here is
+    // `member_quotes_admin_write`, and naming a class would be nonsense.
+    return {
+      status: "error",
+      message: "That could not be saved — your session is not an admin one.",
+    };
+  }
+
+  revalidatePath(`/admin/members/${parsedUser.data}`);
+
+  /**
+   * The total is read back off the generated column rather than the one
+   * the form was showing. If the two ever disagreed, this is the screen
+   * where it would be caught — and the database's answer is the one the
+   * owner should be reading out.
+   */
+  const total =
+    typeof data.final_cents === "number"
+      ? data.final_cents
+      : finalCents(priceCents, kind, discount.value);
+
+  return {
+    status: "success",
+    message: "Saved.",
+    finalCents: total,
+  };
+}
+
+/**
+ * Clearing a quote deletes the row.
+ *
+ * The only place in this schema where a delete is allowed, and the reason
+ * is what the row is: the gym's own working note about its own pricing,
+ * not a record of anything a member did. "Scrap that and start again"
+ * should leave nothing behind.
+ */
+export async function clearQuote(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const parsedUser = userIdSchema.safeParse(formData.get("userId"));
+  if (!parsedUser.success) {
+    return { status: "error", message: "That member could not be identified." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("member_quotes")
+    .delete()
+    .eq("user_id", parsedUser.data);
+
+  if (error) {
+    return {
+      status: "error",
+      message: messageForCode(
+        error.code,
+        "Something went wrong clearing that. Please try again.",
+      ),
+    };
+  }
+
+  revalidatePath(`/admin/members/${parsedUser.data}`);
+  return { status: "success", message: "Quote cleared." };
 }
