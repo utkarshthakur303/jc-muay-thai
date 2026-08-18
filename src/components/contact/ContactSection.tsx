@@ -1,7 +1,7 @@
 import { ContactDetails } from "@/components/contact/ContactDetails";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { Section } from "@/components/layout/Section";
-import { site } from "@/content/site";
+import { trialOffer } from "@/content/site";
 
 /**
  * Contact.
@@ -22,7 +22,7 @@ export function ContactSection() {
       title="CONTACT"
       /* Stated, not promised. "We answer every message" would be a
          commitment made on the gym's behalf that nothing here can keep. */
-      meta={site.firstClassFree ? "Your first class is free" : undefined}
+      meta={trialOffer.name}
       intro="Questions about a class, a level, or booking your first free session — send them here."
     >
       {/*

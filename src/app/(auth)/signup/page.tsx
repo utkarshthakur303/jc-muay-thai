@@ -10,7 +10,7 @@ import { safeNextPath, withNext } from "@/lib/auth/redirects";
 
 export const metadata: Metadata = {
   title: "Create Account",
-  description: "Create a JC Muaythai account to book classes.",
+  description: "Create a JC Muay Thai account to book classes.",
   robots: { index: false, follow: false },
 };
 

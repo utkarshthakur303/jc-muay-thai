@@ -11,7 +11,7 @@ import { safeNextPath, withNext } from "@/lib/auth/redirects";
 
 export const metadata: Metadata = {
   title: "Sign In",
-  description: "Sign in to book classes at JC Muaythai.",
+  description: "Sign in to book classes at JC Muay Thai.",
   robots: { index: false, follow: false },
 };
 
@@ -53,7 +53,7 @@ export default async function LoginPage({
           >
             Create an account
           </Link>{" "}
-          — your first class is free.
+          — start with a two-week trial.
         </p>
       }
     >

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { capacityFor, sessions } from "@/content/schedule";
+import { capacityFor, sessions, sessionSlug } from "@/content/schedule";
 import { site } from "@/content/site";
 import { generateOccurrences } from "@/lib/booking/occurrences";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -116,11 +116,48 @@ export async function ensureHorizon(): Promise<
     ? new Date(String(furthest.starts_at))
     : null;
 
-  if (
-    furthestAt &&
-    furthestAt.getTime() - now.getTime() > REFRESH_BELOW_DAYS * DAY_MS
-  ) {
-    return { ok: true, created: 0 };
+  const longEnough =
+    furthestAt !== null &&
+    furthestAt.getTime() - now.getTime() > REFRESH_BELOW_DAYS * DAY_MS;
+
+  /**
+   * Long enough is not the same as complete.
+   *
+   * The original guard asked one question — does the furthest class sit
+   * beyond the refresh line — and returned early if it did. That is
+   * correct for the case it was written for (time passing) and wrong for
+   * the other one: a session ADDED to the timetable has no rows anywhere,
+   * while the horizon is still 60 days long, so nothing refills and the
+   * new class is advertised on the schedule with nothing bookable behind
+   * it until the tail runs down two weeks later.
+   *
+   * That is not hypothetical. Correcting the timetable to the gym's real
+   * one on 2026-08-18 added a Tuesday kids' class, and this guard would
+   * have hidden it for a fortnight.
+   *
+   * So: every session in a weekly pattern must occur at least once in any
+   * seven-day window. Checking one week costs about forty short rows,
+   * bounded and independent of the horizon's length — and it only runs on
+   * the path that was about to do nothing at all.
+   */
+  if (longEnough) {
+    const weekEnd = new Date(now.getTime() + 8 * DAY_MS);
+
+    const { data: soon, error: coverageError } = await admin
+      .from("class_occurrences")
+      .select("session_slug")
+      .gt("starts_at", now.toISOString())
+      .lt("starts_at", weekEnd.toISOString());
+
+    // Unreadable means unknown, and unknown must not be treated as
+    // covered — fall through and let the idempotent upsert settle it.
+    if (!coverageError && soon) {
+      const present = new Set(soon.map((row) => String(row.session_slug)));
+      const missing = sessions.some(
+        (session) => !present.has(sessionSlug(session)),
+      );
+      if (!missing) return { ok: true, created: 0 };
+    }
   }
 
   const drafts = generateOccurrences(sessions, {

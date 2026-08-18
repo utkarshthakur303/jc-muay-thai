@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { PrimaryCta } from "@/components/layout/PrimaryCta";
 import { TiltCard } from "@/components/ui/TiltCard";
-import { site } from "@/content/site";
+import { site, trialOffer } from "@/content/site";
 
 /**
  * The largest tile in the bento, and the page's LCP element.
@@ -71,12 +71,12 @@ export function HeroCard() {
 
         <p className="mt-3.5 max-w-[420px] text-sm leading-relaxed text-on-photo-2">
           Train authentic Muay Thai. Build confidence, improve fitness, learn
-          real skills. No gear and no experience needed — your first class is
-          free.
+          real skills. No gear and no experience needed — start with a
+          two-week trial.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <PrimaryCta label="Book your free class" />
+          <PrimaryCta label={trialOffer.cta} />
           <Link
             href="#classes"
             className="flex min-h-11 items-center justify-center rounded-full border border-on-photo-3 px-6 font-mono text-[12px] font-semibold tracking-[0.08em] text-on-photo uppercase backdrop-blur-sm transition-colors hover:border-accent hover:text-accent"

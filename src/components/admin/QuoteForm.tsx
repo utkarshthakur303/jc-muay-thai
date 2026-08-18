@@ -59,19 +59,27 @@ export function QuoteForm({
   userId,
   planSlug,
   planName,
+  standardPriceCents,
   quote,
 }: {
   userId: string;
   /** The plan the member currently has chosen. */
   planSlug: PlanSlug;
   planName: string;
+  /**
+   * The gym's published rate for this plan and term, from
+   * content/plans.ts. Prefills the box the first time only — an existing
+   * quote is always what the owner already agreed, and must never be
+   * overwritten by a list price.
+   */
+  standardPriceCents: number;
   quote: MemberQuote | null;
 }) {
   const [state, action] = useActionState(saveQuote, initialAdminState);
   const [clearState, clearAction] = useActionState(clearQuote, initialAdminState);
 
   const [price, setPrice] = useState(
-    quote ? centsToInput(quote.priceCents) : "",
+    centsToInput(quote ? quote.priceCents : standardPriceCents),
   );
   const [kind, setKind] = useState<DiscountKind>(quote?.discountKind ?? "percent");
   const [discount, setDiscount] = useState(

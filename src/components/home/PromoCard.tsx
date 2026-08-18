@@ -1,22 +1,31 @@
 import Image from "next/image";
 
 import { TiltCard } from "@/components/ui/TiltCard";
-import { sessionsOnDay } from "@/content/schedule";
-import { formatRange } from "@/lib/format/time";
+import { trialOffer } from "@/content/site";
 
 /**
- * The free-class offer, with the open-gym window as a badge.
+ * The newcomer offer.
  *
- * The badge text is derived from the timetable rather than typed. The
- * mockup hardcoded "Open Gym Fridays 4–6PM" next to a schedule table that
- * separately listed the same session — two copies of one fact, and no way
- * for the code to notice when they stopped agreeing.
+ * THIS TILE SAID "YOUR FIRST CLASS IS FREE" UNTIL 2026-08-18, AND THAT
+ * WAS INVENTED. Nothing on the gym's own site has ever offered it. The
+ * business's actual newcomer offer is a two-week trial, in their words
+ * "perfect for newcomers… experience training without a long-term
+ * commitment", and that is what this now says.
+ *
+ * The badge is gone with it. It read "Open Gym Fridays 4–6PM", derived
+ * from a session in the timetable that also turned out to be invented —
+ * the gym runs no open gym and is closed by 1:30 on a Friday. Deriving it
+ * from the schedule was the right instinct and it worked exactly as
+ * designed: when the fake session was deleted, the badge deleted itself.
+ * It is removed here rather than left as a `?.` that can never be true.
+ *
+ * WHAT IS DELIBERATELY NOT HERE: a price. The old site does not state
+ * what the trial costs, and the client's instruction was to say nothing
+ * about it rather than guess at "free". This tile is the most persuasive
+ * copy on the page and therefore the worst possible place to be wrong
+ * about money.
  */
 export function PromoCard() {
-  const openGym = sessionsOnDay("fri").find(
-    (session) => session.level === "open-gym",
-  );
-
   return (
     <TiltCard className="card-photo card-hover copy-on-photo flex min-h-45 lg:col-start-2 lg:col-span-2 lg:row-start-2">
       <Image
@@ -32,18 +41,12 @@ export function PromoCard() {
 
       <div className="flex w-full flex-col justify-center px-5 py-6 sm:px-8 lg:px-[clamp(20px,3vw,40px)]">
         <p className="font-display text-[clamp(1.5rem,2.4vw,2rem)] tracking-[0.01em] text-text">
-          Your First Class Is Free
+          {trialOffer.name.toUpperCase()}
         </p>
-        <p className="mt-1 text-[13px] text-text-2">
-          No gear, no experience needed — just show up.
+        <p className="mt-1 max-w-[46ch] text-[13px] leading-snug text-text-2">
+          {trialOffer.blurb}
         </p>
       </div>
-
-      {openGym ? (
-        <p className="absolute top-3.5 right-4 rounded-[14px] border border-border bg-card px-3.5 py-1.5 font-mono text-[11px] text-accent-strong">
-          Open Gym Fridays {formatRange(openGym.start, openGym.end)}
-        </p>
-      ) : null}
     </TiltCard>
   );
 }

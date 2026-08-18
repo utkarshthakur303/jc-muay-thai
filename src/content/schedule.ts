@@ -1,3 +1,4 @@
+import { openingHours } from "@/content/site";
 import { durationMinutes, toMinutes } from "@/lib/format/time";
 
 /**
@@ -13,6 +14,32 @@ import { durationMinutes, toMinutes } from "@/lib/format/time";
  * Here the timetable is declared once and everything else is derived, so
  * adding a session updates the chart, the weekly total, the per-level
  * counts and the class cards in the same edit.
+ *
+ * ── PROVENANCE (2026-08-18) ─────────────────────────────────────────
+ * Every time below now comes from the gym's own live site,
+ * `jcmuaythai201.com/classes`, kept in the repo root as `old.html`. It is
+ * no longer a plausible reconstruction, which is what it had been.
+ *
+ * The mockup's version was close but wrong in four places, and each error
+ * was the kind that only shows up when somebody turns up to a locked door:
+ *
+ *   - Friday evening classes, which do not run. The old site's class page
+ *     says "PM: Monday through Friday" while its own footer says the gym
+ *     shuts at 1:30 PM on a Friday. Put to the client 2026-08-18; they
+ *     confirmed Friday is mornings only. The class page is stale.
+ *   - Kids on Monday. That same page contradicts itself — a blurb saying
+ *     "Mondays, Wednesdays, Thursdays and Saturdays" over a schedule
+ *     saying "Tuesdays, Wednesdays, and Thursdays" plus Saturday. Client
+ *     confirmed the schedule, not the blurb.
+ *   - Saturday evening classes, which do not exist. The old site says
+ *     "no Saturdays" against every PM row.
+ *   - Friday "Open Gym" 4–6PM, which appears nowhere in the real business
+ *     and was invented whole. The `open-gym` level is gone with it.
+ *
+ * Advanced runs 90 minutes, every session, morning and evening. Four rows
+ * here previously ran 60, which would have sent a fighter home half an
+ * hour early.
+ * ────────────────────────────────────────────────────────────────────
  *
  * When booking ships, this becomes the seed for the `class_sessions`
  * table; the shape is already row-like for that reason.
@@ -47,35 +74,56 @@ export const DAY_FULL_LABELS: Record<DayId, string> = {
   sat: "Saturday",
 };
 
-export const LEVELS = [
-  "beginner",
-  "intermediate",
-  "advanced",
-  "kids",
-  "open-gym",
-] as const;
+/**
+ * The four classes the gym actually runs.
+ *
+ * `open-gym` used to be a fifth. It was invented for the mockup and
+ * removed on 2026-08-18 once the real site showed no such session — see
+ * the provenance note above. Removing it from this union is deliberate:
+ * it makes every stale reference a type error rather than an empty
+ * section, and there is one occurrence-cleanup migration whose whole job
+ * is to delete the rows it left behind.
+ */
+export const LEVELS = ["beginner", "intermediate", "advanced", "kids"] as const;
 export type LevelId = (typeof LEVELS)[number];
 
+/**
+ * Display names, in the gym's own words.
+ *
+ * "Beginners" is plural because that is how their site writes it, and
+ * "Advanced & Fighter" because that is the class's real name — it is not
+ * simply the top of a ladder, it is where people preparing to compete
+ * train. Getting that name right is what stops a nervous beginner
+ * booking into 30 minutes of sparring.
+ */
 export const LEVEL_LABELS: Record<LevelId, string> = {
-  beginner: "Beginner",
+  beginner: "Beginners",
   intermediate: "Intermediate",
-  advanced: "Advanced",
+  advanced: "Advanced & Fighter",
   kids: "Kids",
-  "open-gym": "Open Gym",
 };
 
 /**
- * The standing caveat that runs above the timetable.
- *
- * In the mockup this was an infinitely scrolling marquee, duplicated twice
- * in the DOM so the loop looked seamless — which meant a screen reader read
- * the sentence twice, and no one could read it at their own pace. WCAG
- * 2.2.2 requires a pause control for any automatic motion running longer
- * than five seconds; adding pause/play chrome to a single sentence is
- * absurd, so the sentence stays and the motion goes.
+ * The short form, for places too narrow for "Advanced & Fighter" — the
+ * calendar's day cells and the weekly chart's axis, both of which have
+ * roughly six characters to play with on a 320px phone.
  */
-export const SCHEDULE_NOTE =
-  "Schedule may vary during summer months due to lower student attendance.";
+export const LEVEL_SHORT_LABELS: Record<LevelId, string> = {
+  beginner: "Beginners",
+  intermediate: "Intermediate",
+  advanced: "Advanced",
+  kids: "Kids",
+};
+
+/*
+ * SCHEDULE_NOTE is gone.
+ *
+ * It read "Schedule may vary during summer months due to lower student
+ * attendance", and it came from the mockup — not from the gym. The real
+ * site makes no such claim anywhere, so it was a caveat we invented on the
+ * business's behalf, hedging a timetable that is now accurate. Removed at
+ * the client's instruction, 2026-08-18.
+ */
 
 export type Session = {
   readonly day: DayId;
@@ -104,9 +152,9 @@ export type Session = {
 export const DEFAULT_CLASS_CAPACITY = 16;
 
 /**
- * Per-level overrides. Deliberately empty: kids' classes and open gym
- * plausibly hold different numbers from a regular class, but "plausibly"
- * is not a fact, and inventing three numbers is worse than inventing one.
+ * Per-level overrides. Deliberately empty: a kids' class plausibly holds
+ * a different number from an adult one, but "plausibly" is not a fact,
+ * and inventing a second number is worse than inventing one.
  */
 export const CAPACITY_BY_LEVEL: Partial<Record<LevelId, number>> = {};
 
@@ -139,20 +187,28 @@ const at = (day: DayId, level: LevelId, start: string, end: string): Session => 
   end,
 });
 
+/**
+ * The gym's week, exactly as its own site publishes it.
+ *
+ * The shape is regular and worth seeing: the same three graded classes
+ * run back-to-back every morning Monday to Saturday, and again every
+ * evening Monday to Thursday. Kids sit in the after-school gap. Nothing
+ * here is a one-off except Saturday's early kids' class.
+ */
 export const sessions: readonly Session[] = [
-  // Monday
+  // Monday — mornings, then evenings.
   at("mon", "beginner", "09:00", "10:00"),
   at("mon", "intermediate", "10:00", "11:00"),
   at("mon", "advanced", "11:00", "12:30"),
-  at("mon", "kids", "16:00", "16:45"),
   at("mon", "beginner", "17:00", "18:00"),
   at("mon", "intermediate", "18:00", "19:00"),
   at("mon", "advanced", "19:00", "20:30"),
 
-  // Tuesday
+  // Tuesday — kids start here, not Monday.
   at("tue", "beginner", "09:00", "10:00"),
   at("tue", "intermediate", "10:00", "11:00"),
   at("tue", "advanced", "11:00", "12:30"),
+  at("tue", "kids", "16:00", "16:45"),
   at("tue", "beginner", "17:00", "18:00"),
   at("tue", "intermediate", "18:00", "19:00"),
   at("tue", "advanced", "19:00", "20:30"),
@@ -166,28 +222,25 @@ export const sessions: readonly Session[] = [
   at("wed", "intermediate", "18:00", "19:00"),
   at("wed", "advanced", "19:00", "20:30"),
 
-  // Thursday
+  // Thursday — the last evening of the week.
   at("thu", "beginner", "09:00", "10:00"),
   at("thu", "intermediate", "10:00", "11:00"),
-  at("thu", "advanced", "11:00", "12:00"),
+  at("thu", "advanced", "11:00", "12:30"),
   at("thu", "kids", "16:00", "16:45"),
   at("thu", "beginner", "17:00", "18:00"),
   at("thu", "intermediate", "18:00", "19:00"),
-  at("thu", "advanced", "19:00", "20:00"),
+  at("thu", "advanced", "19:00", "20:30"),
 
-  // Friday
+  // Friday — mornings only. The gym closes at 1:30 PM.
   at("fri", "beginner", "09:00", "10:00"),
   at("fri", "intermediate", "10:00", "11:00"),
-  at("fri", "advanced", "11:00", "12:00"),
-  at("fri", "open-gym", "16:00", "18:00"),
+  at("fri", "advanced", "11:00", "12:30"),
 
-  // Saturday
+  // Saturday — mornings, plus kids straight after.
   at("sat", "beginner", "09:00", "10:00"),
   at("sat", "intermediate", "10:00", "11:00"),
-  at("sat", "advanced", "11:00", "12:00"),
+  at("sat", "advanced", "11:00", "12:30"),
   at("sat", "kids", "13:00", "13:45"),
-  at("sat", "intermediate", "18:00", "19:00"),
-  at("sat", "advanced", "19:00", "20:00"),
 ];
 
 /**
@@ -254,6 +307,43 @@ function assertScheduleIsSane(): void {
       );
     }
     slugs.add(slug);
+  }
+
+  /**
+   * No class may run when the gym is shut.
+   *
+   * This is the rule that the four invented sessions broke, and it is why
+   * it is written down rather than trusted. The mockup had beginner,
+   * intermediate and advanced classes on a Friday evening and an "open
+   * gym" until 6 PM, on a day the business closes at 1:30 — a member could
+   * have booked any of them and driven to a locked door. Nobody noticed
+   * for weeks, because nothing compared the two lists.
+   *
+   * Now they cannot disagree: adding a class outside opening hours, or
+   * shortening a day's hours under an existing class, fails `next build`.
+   */
+  const hoursByDay = new Map(openingHours.map((entry) => [entry.day, entry]));
+  for (const session of sessions) {
+    const hours = hoursByDay.get(session.day);
+
+    if (!hours || hours.opens === null || hours.closes === null) {
+      throw new Error(
+        `Schedule: ${session.level} runs on ${session.day} ` +
+          `(${session.start}–${session.end}) but the gym is closed that day.`,
+      );
+    }
+
+    if (
+      toMinutes(session.start) < toMinutes(hours.opens) ||
+      toMinutes(session.end) > toMinutes(hours.closes)
+    ) {
+      throw new Error(
+        `Schedule: ${session.day} ${session.level} runs ` +
+          `${session.start}–${session.end}, outside opening hours ` +
+          `${hours.opens}–${hours.closes}. A member could book a class ` +
+          `and arrive to a locked door.`,
+      );
+    }
   }
 }
 

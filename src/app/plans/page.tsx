@@ -26,11 +26,12 @@ export default async function PlansPage({
    */
   if (!user) redirect("/login?next=/plans");
 
-  const [{ available, slug }, upcomingCount, params] = await Promise.all([
-    getPlanState(),
-    countUpcomingBookings(),
-    searchParams,
-  ]);
+  const [{ available, slug, commitment }, upcomingCount, params] =
+    await Promise.all([
+      getPlanState(),
+      countUpcomingBookings(),
+      searchParams,
+    ]);
 
   /**
    * The table does not exist yet — the migration is applied by hand by the
@@ -49,30 +50,30 @@ export default async function PlansPage({
       upcomingCount={upcomingCount}
     >
       <p className="mt-8 max-w-prose text-sm leading-relaxed text-text-2">
-        Tell us which plan you&apos;re interested in and the gym will pick it up
-        with you in person — nothing is charged here and nothing is locked in.
-        You can change it any time from your account, and you can book classes
-        either way.
+        Tell us which class you&apos;re interested in and the gym will pick it
+        up with you in person — nothing is charged here and nothing is locked
+        in. You can change it any time from your account, and you can book
+        classes either way.
       </p>
 
       {/*
-        THE DRAFT NOTICE WAS REMOVED AT THE CLIENT'S REQUEST (2026-08-13),
-        having been added at their request two days earlier.
+        THE PLANS ON THIS PAGE WERE INVENTED UNTIL 2026-08-18.
 
-        Recorded rather than quietly deleted, because it changes what this
-        page asserts. The plans below are still invented — the gym has not
-        confirmed that it sells one, three and six month blocks, or what
-        any of them covers — and every one of them is still
-        `confirmed: false` in content/plans.ts. What has changed is that a
-        real member now reads them as finished.
+        Worth recording rather than quietly fixing, because of what it cost:
+        this page showed one, three and six month blocks that the gym does
+        not sell, behind a draft notice that was added on Aug 11 and removed
+        on Aug 13 at the client's request. Between then and Aug 18, real
+        members read fiction as finished copy, and two of them answered it.
+        Those two rows were cleared by 20260818130000_real_plans.sql, because
+        an answer to a question that never existed is not data.
 
-        Nothing here quotes a price, which is the guard that still holds:
-        the copy is a description that may turn out wrong, not a number
-        anybody can be held to. Getting the real plans from the gym is the
-        top item in MEMORY.md §8.
+        Everything here is now the gym's own — the four classes it runs, the
+        three commitment terms it offers, and the prices it publishes on
+        jcmuaythai201.com. The guard that used to be "quote no prices" is now
+        "quote only theirs".
       */}
 
-      <PlanPicker next={next} current={slug} />
+      <PlanPicker next={next} current={slug} currentCommitment={commitment} />
 
       {/*
         No "skip to booking" link here, and that is not an omission. /book
@@ -81,9 +82,10 @@ export default async function PlansPage({
         The way past is the picker's own "I'll decide later", which records
         an answer first and therefore actually arrives.
       */}
-      <p className="mt-8 text-[13px] leading-relaxed text-text-3">
-        Prices aren&apos;t shown here because the gym handles payment in
-        person.
+      <p className="mt-8 max-w-prose text-[13px] leading-relaxed text-text-3">
+        These are the gym&apos;s standard rates. Nothing on this site takes
+        payment — the gym settles it with you in person, and that is also
+        where anything you&apos;ve agreed differently gets applied.
       </p>
     </MemberShell>
   );

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { StreakButton } from "@/components/attendance/StreakButton";
 import { useActiveSection } from "@/components/layout/ActiveSection";
 import { Icon, LogoMark } from "@/components/ui/Icon";
-import { navSections, site } from "@/content/site";
+import { navSections, site, trialOffer } from "@/content/site";
 
 /**
  * The orange rail — the signature element of the approved design. Desktop
@@ -104,8 +104,16 @@ export function SidebarRail() {
       <div aria-hidden className="min-h-3 flex-1" />
 
       <Link
-        href="/signup"
-        aria-label="Book your free class"
+        /*
+          /book, not /signup. The proxy sends a visitor without an account
+          to /login?next=/book and returns them here afterwards, so this
+          works for both — whereas /signup strands an existing member on a
+          form asking them to create the account they already have. The
+          fix was applied to MobileNav when it was found and never to this
+          copy; corrected 2026-08-18 while the label was being changed.
+        */
+        href="/book"
+        aria-label={trialOffer.cta}
         className="flex size-12 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-ink hover:text-accent"
       >
         <Icon name="calendar" size={22} />

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { isPlanSlug } from "@/content/plans";
+import { isCommitmentSlug, isPlanSlug } from "@/content/plans";
 import { safeNextPath } from "@/lib/auth/redirects";
 // Type-only, and it has to stay that way: a "use server" module may export
 // nothing but async functions. See lib/plans/state.ts.
@@ -47,12 +47,26 @@ export async function choosePlan(
     return { status: "error", message: "That plan could not be identified." };
   }
 
+  /**
+   * How long they want to commit for. Optional by design — the radio
+   * group has no preselected option, because a term that arrives because
+   * nobody unticked it is not an answer, and at this gym the term is the
+   * thing that changes the price.
+   *
+   * Unrecognised values fall to null rather than erroring. Unlike the
+   * class, a missing term costs a member nothing: the gym asks at the
+   * desk, which is where that conversation happens anyway.
+   */
+  const rawCommitment = formData.get("commitment");
+  const commitment = isCommitmentSlug(rawCommitment) ? rawCommitment : null;
+
   const supabase = await createClient();
 
   const { error } = await supabase.from("member_plans").upsert(
     {
       user_id: user.id,
       plan_slug: slug,
+      commitment,
       // Updated on every change, so the column reads as "as of" rather
       // than "first seen".
       chosen_at: new Date().toISOString(),

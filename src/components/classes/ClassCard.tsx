@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import { planBySlug } from "@/content/plans";
+import { formatPrice } from "@/lib/format/money";
 import { formatDurationRange } from "@/lib/format/time";
 import type { ClassLevel } from "@/content/classes";
 
@@ -25,25 +27,50 @@ export function ClassCard({ level }: { level: ClassLevel }) {
   // No min-height. It used to be 420px, which was right when the card also
   // carried a six-row timetable; with that gone the card kept the height
   // and grew a dead band of empty photograph under the text. The grid
-  // equalises the three cards against each other anyway, so the tallest
+  // equalises the cards against each other anyway, so the tallest
   // description sets the height and nothing has to guess it.
+  //
+  // The photograph is optional — see content/classes.ts. A card without
+  // one takes the plain card surface rather than rendering an empty photo
+  // frame, and the two class names are written as mutually exclusive
+  // branches rather than concatenated: Tailwind orders utilities by
+  // variant and not by string position, so `card-photo card-surface`
+  // would resolve to whichever the stylesheet happened to define last.
+  // Destructured so the null check below narrows both, rather than
+  // needing a non-null assertion at the point of use.
+  const { image, imageAlt } = level;
+
+  // A class and a plan are the same vocabulary now — `PlanSlug` is
+  // `LevelId` — so this lookup cannot go stale silently.
+  const plan = planBySlug(level.id) ?? null;
+
   return (
-    <li className="card-photo card-hover photo-reveal copy-on-photo flex flex-col bg-card">
-      {/*
-        Resting and hovered opacity both live in the `photo-reveal`
-        utility rather than here — see globals.css. They are one decision
-        (how far the picture comes forward), and splitting them across two
-        files is how the hovered state ends up brighter than the copy on
-        top of it can survive.
-      */}
-      <Image
-        src={level.image}
-        alt={level.imageAlt}
-        fill
-        sizes="(max-width: 1023px) 100vw, 33vw"
-        className="-z-10 object-cover"
-      />
-      <div aria-hidden className="scrim-card absolute inset-0 -z-10" />
+    <li
+      className={
+        image !== null
+          ? "card-photo card-hover photo-reveal copy-on-photo flex flex-col bg-card"
+          : "card-surface card-hover flex flex-col"
+      }
+    >
+      {image !== null && imageAlt !== null ? (
+        <>
+          {/*
+            Resting and hovered opacity both live in the `photo-reveal`
+            utility rather than here — see globals.css. They are one
+            decision (how far the picture comes forward), and splitting
+            them across two files is how the hovered state ends up
+            brighter than the copy on top of it can survive.
+          */}
+          <Image
+            src={image}
+            alt={imageAlt}
+            fill
+            sizes="(max-width: 1023px) 100vw, 33vw"
+            className="-z-10 object-cover"
+          />
+          <div aria-hidden className="scrim-card absolute inset-0 -z-10" />
+        </>
+      ) : null}
 
       <div className="flex flex-1 flex-col p-7 sm:p-8">
         <p aria-hidden className="font-mono text-[13px] tracking-widest text-accent-strong">
@@ -63,9 +90,44 @@ export function ClassCard({ level }: { level: ClassLevel }) {
           </span>
         </p>
 
-        <p className="mt-4 flex-1 text-sm leading-relaxed text-text-2">
+        <p className="mt-4 text-sm leading-relaxed text-text-2">
           {level.description}
         </p>
+
+        {/*
+          Who it is for, kept as its own line rather than folded into the
+          description. It is the sentence that stops a first-timer booking
+          into 30 minutes of sparring, and buried at the end of a
+          paragraph nobody reads it.
+        */}
+        <p className="mt-2 flex-1 text-sm leading-relaxed text-text-3">
+          {level.suitedTo}
+        </p>
+
+        {/*
+          The gym's advertised rate, from content/plans.ts — the same
+          figure the plan picker shows, because a price that differs
+          between two screens of one site is worse than no price at all.
+
+          Every class has a plan; `plan` is nonetheless checked rather
+          than assumed, so retiring one from plans.ts drops a price line
+          instead of crashing the home page.
+        */}
+        {plan ? (
+          <p className="mt-5 flex flex-wrap items-baseline gap-x-2 border-t border-divider pt-4">
+            <span className="font-mono text-base tabular-nums text-text">
+              {formatPrice(plan.priceCents)}
+            </span>
+            <span className="font-mono text-[11px] tracking-[0.06em] text-text-3 uppercase">
+              / month
+            </span>
+            {plan.contractPriceCents !== null ? (
+              <span className="font-mono text-[11px] text-accent-strong">
+                {formatPrice(plan.contractPriceCents)} on a 12-week contract
+              </span>
+            ) : null}
+          </p>
+        ) : null}
       </div>
     </li>
   );

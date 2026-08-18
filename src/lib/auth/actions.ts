@@ -137,7 +137,7 @@ export async function signUp(
   /**
    * The destination survives the round trip through the inbox.
    *
-   * Someone who pressed "Book free class" without an account travels
+   * Someone who pressed "Book your trial class" without an account travels
    * /book → /login → /signup → their email → back here. If `next` were
    * dropped anywhere on that journey they would confirm their address and
    * land on the home page, having forgotten why they signed up. This is the

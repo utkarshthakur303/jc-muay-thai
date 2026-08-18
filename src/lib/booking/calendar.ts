@@ -1,4 +1,8 @@
-import { isDayId, LEVEL_LABELS, type LevelId } from "@/content/schedule";
+import {
+  isDayId,
+  LEVEL_SHORT_LABELS,
+  type LevelId,
+} from "@/content/schedule";
 import {
   addCivilDays,
   civilWeekdayIndex,
@@ -275,7 +279,18 @@ export function buildCalendar(
     const date = gymCivilDate(new Date(entry.startsAt), timeZone);
     const key = dayKeyOf(date);
     const time = formatClassTimeRange(entry.startsAt, entry.endsAt, timeZone);
-    const level = LEVEL_LABELS[entry.level];
+    /*
+      The short name here, not the full "Advanced & Fighter". This is the
+      booking grid: on a 320px phone a day cell gives a level roughly ten
+      characters beside a time range, and the four levels are already
+      unambiguous from each other. The full name lives on the classes
+      section, where there is room to say what it means.
+
+      The accessible name below is built from the same string on purpose.
+      A screen reader announcing a different class name from the one on
+      screen is worse than a shortened one.
+    */
+    const level = LEVEL_SHORT_LABELS[entry.level];
 
     const mapped: CalendarClass = {
       id: entry.id,

@@ -1,6 +1,6 @@
 import { Section } from "@/components/layout/Section";
+import { OpeningHours } from "@/components/schedule/OpeningHours";
 import { DayCard } from "@/components/schedule/DayCard";
-import { ScheduleNote } from "@/components/schedule/ScheduleNote";
 import { TodayAtTheGym } from "@/components/schedule/TodayAtTheGym";
 import { DAYS, totalWeeklySessions } from "@/content/schedule";
 
@@ -9,13 +9,13 @@ import { DAYS, totalWeeklySessions } from "@/content/schedule";
  *
  * Two things from the mockup are gone, and one is rebuilt differently.
  *
- * The scrolling marquee is gone. It carried a real sentence — the summer
- * caveat, now behind the Schedule notes disclosure — but delivered it as
- * motion no one could pause, duplicated in the DOM so the loop looked
- * seamless, which made a screen reader read it twice. WCAG 2.2.2 wants a
- * pause control on anything moving for more than five seconds, and
- * building play/pause chrome around one sentence is not a serious
- * proposal. The sentence stays; the movement does not.
+ * The scrolling marquee is gone, and so is the sentence it carried. It
+ * said the schedule varies over the summer, which sounded like the gym
+ * talking and was not — nothing on the real site claims it. Removed with
+ * the rest of the invented copy on 2026-08-18. What sits here instead is
+ * the gym's actual opening hours, which is a fact, and the more useful
+ * one: a class at 11 AM tells you nothing about whether the door is open
+ * at 2 PM.
  *
  * The clickable rows are gone. They opened a drawer that listed times and
  * showed a hardcoded "3 spots left" next to a button that booked nothing.
@@ -36,13 +36,11 @@ export function ScheduleSection() {
       id="schedule"
       title="SCHEDULE"
       meta={`${totalWeeklySessions} sessions · Mon–Sat`}
-      intro="Morning and evening classes six days a week. Kids and open-gym sessions run alongside the graded classes and are listed with them."
+      intro="The same three graded classes run back to back every morning, Monday to Saturday, and again on weekday evenings. Kids' classes run after school and are listed alongside them."
     >
       <TodayAtTheGym />
 
-      {/* The summer caveat. See ScheduleNote for why it is a quiet
-          disclosure rather than the accent-tinted panel it used to be. */}
-      <ScheduleNote />
+      <OpeningHours />
 
       <ul
         role="list"

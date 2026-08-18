@@ -56,7 +56,7 @@ export function AuthShell({
               <LogoMark />
             </span>
             <span className="font-display text-2xl tracking-wide text-on-photo">
-              JC MUAYTHAI
+              JC MUAY THAI
             </span>
           </Link>
 
@@ -68,8 +68,8 @@ export function AuthShell({
               UNLEASH YOUR INNER FIGHTER
             </p>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-on-photo-2">
-              Build confidence. Improve fitness. Learn real skills. Your first
-              class is free — no gear, no experience needed.
+              Build confidence. Improve fitness. Learn real skills. Start with
+              a two-week trial — no gear, no experience needed.
             </p>
           </div>
         </div>
@@ -111,7 +111,7 @@ export function AuthShell({
               <LogoMark size={20} />
             </span>
             <span className="font-display text-xl tracking-wide text-text">
-              JC MUAYTHAI
+              JC MUAY THAI
             </span>
           </Link>
 

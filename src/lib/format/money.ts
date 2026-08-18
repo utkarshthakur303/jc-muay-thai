@@ -24,6 +24,29 @@ export function formatMoney(cents: number): string {
   return formatter.format(cents / 100);
 }
 
+const wholeFormatter = new Intl.NumberFormat(LOCALE, {
+  style: "currency",
+  currency: CURRENCY,
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+/**
+ * 12500 → "$125"; 12550 → "$125.50".
+ *
+ * For advertised prices, where ".00" is two characters of noise on every
+ * card — the gym writes "$125" on its own site and so does everyone else.
+ * Amounts with real cents keep them, so this can never round a price.
+ *
+ * Not for totals: {@link formatMoney} stays the one used at the counter,
+ * where a column of figures should line up on the decimal point.
+ */
+export function formatPrice(cents: number): string {
+  return cents % 100 === 0
+    ? wholeFormatter.format(cents / 100)
+    : formatter.format(cents / 100);
+}
+
 /**
  * What the owner types, back into cents.
  *

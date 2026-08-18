@@ -1,6 +1,11 @@
 import "server-only";
 
-import { isPlanSlug, type PlanSlug } from "@/content/plans";
+import {
+  isCommitmentSlug,
+  isPlanSlug,
+  type CommitmentSlug,
+  type PlanSlug,
+} from "@/content/plans";
 import { LEVELS, type LevelId } from "@/content/schedule";
 import { adminIds } from "@/lib/admin/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -64,10 +69,23 @@ export type AdminMember = {
   readonly email: string;
   readonly joinedAt: string;
   readonly plan: PlanAnswer;
+  /**
+   * How long they said they want to commit for, or null. Kept beside the
+   * plan rather than inside `PlanAnswer` because it is independently
+   * absent: picking a class without settling the term is the common case,
+   * and at this gym the term is what decides whether the standard or the
+   * contract rate applies — so the owner needs it in front of them while
+   * quoting.
+   */
+  readonly commitment: CommitmentSlug | null;
   readonly upcomingBookings: number;
   /** Classes booked that have already run. Booked, never "attended". */
   readonly pastBookings: number;
 };
+
+function commitmentFrom(row: { commitment?: unknown } | undefined) {
+  return row && isCommitmentSlug(row.commitment) ? row.commitment : null;
+}
 
 function planAnswerFrom(
   row: { plan_slug?: unknown } | undefined,
@@ -202,7 +220,10 @@ export async function listMembers(
    * stays flat however large the gym gets.
    */
   const [plans, bookings] = await Promise.all([
-    supabase.from("member_plans").select("user_id,plan_slug").in("user_id", pageIds),
+    supabase
+      .from("member_plans")
+      .select("user_id,plan_slug,commitment")
+      .in("user_id", pageIds),
     supabase
       .from("bookings")
       .select("user_id,class_occurrences!inner(starts_at)")
@@ -211,7 +232,10 @@ export async function listMembers(
       .limit(BOOKING_SCAN_LIMIT),
   ]);
 
-  const planByUser = new Map<string, { plan_slug?: unknown }>();
+  const planByUser = new Map<
+    string,
+    { plan_slug?: unknown; commitment?: unknown }
+  >();
   for (const row of plans.data ?? []) {
     planByUser.set(asString(row.user_id), row);
   }
@@ -244,6 +268,7 @@ export async function listMembers(
       email: asString(row.email),
       joinedAt: asString(row.created_at),
       plan: planAnswerFrom(planByUser.get(userId)),
+      commitment: commitmentFrom(planByUser.get(userId)),
       upcomingBookings: upcoming.get(userId) ?? 0,
       pastBookings: past.get(userId) ?? 0,
     };
@@ -290,7 +315,7 @@ export async function getMemberDetail(
       .maybeSingle(),
     supabase
       .from("member_plans")
-      .select("user_id,plan_slug")
+      .select("user_id,plan_slug,commitment")
       .eq("user_id", userId)
       .maybeSingle(),
     supabase
@@ -338,6 +363,7 @@ export async function getMemberDetail(
       email: asString(profile.data.email),
       joinedAt: asString(profile.data.created_at),
       plan: planAnswerFrom(plan.data ?? undefined),
+      commitment: commitmentFrom(plan.data ?? undefined),
       upcomingBookings: live.filter((row) => row.startsAt > nowIso).length,
       pastBookings: live.filter((row) => row.startsAt <= nowIso).length,
     },

@@ -1,4 +1,4 @@
-import type { PlanSlug } from "@/content/plans";
+import type { CommitmentSlug, PlanSlug } from "@/content/plans";
 
 /**
  * The plan action's result.
@@ -29,6 +29,13 @@ export type PlanState = {
   readonly available: boolean;
   /** Has this member been through the plans page? */
   readonly asked: boolean;
-  /** Their current answer. null means asked, and chose not to pick one. */
+  /** Which class they want. null means asked, and chose not to pick one. */
   readonly slug: PlanSlug | null;
+  /**
+   * How long they want to commit for — the axis that moves the price at
+   * this gym. Independently nullable from `slug`: picking a class without
+   * settling the term is the common case, since the term is what people
+   * want to talk through at the desk.
+   */
+  readonly commitment: CommitmentSlug | null;
 };

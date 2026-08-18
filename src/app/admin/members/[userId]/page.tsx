@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { AdminShell } from "@/components/admin/AdminShell";
 import { QuoteForm } from "@/components/admin/QuoteForm";
-import { planBySlug, planDuration } from "@/content/plans";
+import { commitmentBySlug, planBySlug, priceFor } from "@/content/plans";
 import { LEVEL_LABELS } from "@/content/schedule";
 import { site } from "@/content/site";
 import { requireAdmin } from "@/lib/admin/guard";
@@ -44,6 +44,9 @@ export default async function AdminMemberPage({
     member.plan.state === "chosen"
       ? (planBySlug(member.plan.slug) ?? null)
       : null;
+  const term = member.commitment
+    ? (commitmentBySlug(member.commitment) ?? null)
+    : null;
   const nowIso = new Date().toISOString();
 
   const quote = await getQuote(userId);
@@ -78,11 +81,24 @@ export default async function AdminMemberPage({
           </p>
           <p className="mt-2 text-sm font-semibold text-text">
             {plan
-              ? `${plan.name} · ${planDuration(plan)}`
+              ? plan.name
               : member.plan.state === "declined"
                 ? "Chose to decide later"
                 : "Never asked"}
           </p>
+
+          {/*
+            The advertised rate for what they picked, and the term they
+            picked it on. This is the number the quote box starts from, so
+            showing it here is what makes a changed figure below read as a
+            deliberate decision rather than a typo.
+          */}
+          {plan ? (
+            <p className="mt-1 font-mono text-[13px] tabular-nums text-text-2">
+              {formatMoney(priceFor(plan, term))} standard
+              {term ? ` · ${term.name}` : " · term not chosen"}
+            </p>
+          ) : null}
           {/*
             Said on the screen, not just in the migration. A plan here is
             an interest the gym follows up in person — it authorises
@@ -130,6 +146,12 @@ export default async function AdminMemberPage({
           userId={member.userId}
           planSlug={plan.slug}
           planName={plan.name}
+          /*
+            The gym's own advertised rate for this plan on this term, used
+            to prefill an empty box. Typing $190 from memory on every
+            Advanced member is how one of them quietly becomes $19.
+          */
+          standardPriceCents={priceFor(plan, term)}
           quote={quote}
         />
       ) : (

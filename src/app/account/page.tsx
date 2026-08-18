@@ -8,7 +8,7 @@ import {
   NextClassCard,
   NoUpcomingCard,
 } from "@/components/booking/NextClassCard";
-import { planBySlug, planDuration } from "@/content/plans";
+import { commitmentBySlug, planBySlug, priceFor } from "@/content/plans";
 import { LEVEL_LABELS } from "@/content/schedule";
 import { site } from "@/content/site";
 import { signOut } from "@/lib/auth/actions";
@@ -25,6 +25,7 @@ import {
   formatClassTimeRange,
   relativeDayLabel,
 } from "@/lib/format/classTime";
+import { formatPrice } from "@/lib/format/money";
 import { getPlanState } from "@/lib/plans/queries";
 import { getUser } from "@/lib/supabase/server";
 
@@ -112,6 +113,9 @@ export default async function AccountPage() {
     ]);
 
   const chosenPlan = planState.slug ? planBySlug(planState.slug) : undefined;
+  const chosenTerm = planState.commitment
+    ? (commitmentBySlug(planState.commitment) ?? null)
+    : null;
 
   /**
    * The next class is lifted out of the list and given the top of the
@@ -248,19 +252,33 @@ export default async function AccountPage() {
             <div className="min-w-0">
               <p className="text-sm text-text">
                 {chosenPlan
-                  ? `${chosenPlan.name} · ${planDuration(chosenPlan)}`
+                  ? `${chosenPlan.name} · ${formatPrice(priceFor(chosenPlan, chosenTerm))} a month`
                   : "No plan chosen yet"}
               </p>
               {/*
-                Said plainly, every time it is shown. A member who reads
-                "Advanced · 6 months" on their own account page and is
-                never told otherwise will reasonably believe they are on a
-                paid membership. Nobody has been charged and nothing has
-                been agreed; this is a note of what they said they wanted.
+                The term, when they picked one. Second line rather than
+                appended, because the first line now carries a price and
+                "Advanced · $190 a month · 12-week contract" is a sentence
+                nobody parses at a glance.
+              */}
+              {chosenPlan && chosenTerm ? (
+                <p className="mt-0.5 text-[13px] leading-snug text-text-2">
+                  {chosenTerm.name}
+                </p>
+              ) : null}
+
+              {/*
+                Said plainly, every time it is shown, and it matters more
+                now than it did. A member who reads "Advanced · $190 a
+                month" on their own account page and is never told
+                otherwise will reasonably believe they are being billed.
+                Nobody has been charged and nothing has been agreed; this
+                is a note of what they said they wanted, at the gym's
+                standard rate.
               */}
               <p className="mt-0.5 text-[13px] leading-snug text-text-3">
-                An interest, not a subscription — the gym sorts payment with
-                you in person.
+                An interest, not a subscription — nothing here charges you,
+                and the gym settles the price with you in person.
               </p>
             </div>
 

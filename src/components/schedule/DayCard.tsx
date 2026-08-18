@@ -2,7 +2,7 @@ import { Fragment } from "react";
 
 import {
   DAY_LABELS,
-  LEVEL_LABELS,
+  LEVEL_SHORT_LABELS,
   sessionsOnDay,
   type DayId,
   type LevelId,
@@ -57,7 +57,15 @@ export function DayCard({ day }: { day: DayId }) {
             key={level}
             className="flex items-baseline justify-between gap-4 border-b border-divider/60 py-2.5 last:border-b-0"
           >
-            <dt className="shrink-0 text-text-2">{LEVEL_LABELS[level]}</dt>
+            {/*
+              Short names. This column is `shrink-0` beside a right-aligned
+              range that can read "11 AM–12:30 PM · 7–8:30 PM"; "Advanced &
+              Fighter" alongside it overflows the card at every width below
+              sm.
+            */}
+            <dt className="shrink-0 text-text-2">
+              {LEVEL_SHORT_LABELS[level]}
+            </dt>
             {/*
               Each range is its own nowrap span rather than one joined
               string. In the two-column layout the value box narrows to

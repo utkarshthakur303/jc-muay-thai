@@ -16,7 +16,7 @@ import Link from "next/link";
  * ask Supabase who is asking.
  */
 export function PrimaryCta({
-  label = "Book free class",
+  label = "Book your trial class",
   className = "",
 }: {
   label?: string;

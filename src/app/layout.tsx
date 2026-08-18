@@ -7,11 +7,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "JC Muaythai — Authentic Muay Thai in Jersey City",
-    template: "%s · JC Muaythai",
+    default: "JC Muay Thai — Authentic Muay Thai in Jersey City",
+    template: "%s · JC Muay Thai",
   },
   description:
-    "Train authentic Muay Thai in Jersey City. Beginner to advanced classes, twice daily. Your first class is free.",
+    "Train authentic Muay Thai in Jersey City. Beginners to fighters, mornings and evenings, six days a week. Start with a two-week trial.",
   robots: { index: true, follow: true },
 };
 
