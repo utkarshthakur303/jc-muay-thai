@@ -3,6 +3,12 @@ import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 
 import { env } from "@/lib/env";
+import {
+  ADMIN_WELCOME_COOKIE,
+  ADMIN_WELCOME_NEW,
+  ADMIN_WELCOME_SEEN,
+  adminWelcomeCookieOptions,
+} from "@/lib/admin/welcome";
 import { secureCookieOptions } from "@/lib/supabase/cookieOptions";
 import {
   MEMBER_COOKIE,
@@ -51,6 +57,35 @@ function syncMemberCookie(
     // does not match the original silently leaves the cookie behind.
     value: desired ?? "",
     ...memberCookieOptions(desired === null ? 0 : MEMBER_COOKIE_MAX_AGE),
+  });
+}
+
+/**
+ * Steps the panel's welcome from "not yet" to "already seen".
+ *
+ * Two writes, never one: absent becomes `new`, and `new` becomes `seen`.
+ * The page greets on anything that is not `seen`. A cookie set here is
+ * visible to the render of this same request, which is what makes a
+ * one-value flag impossible — the argument, and the measurements behind
+ * it, are in lib/admin/welcome.ts.
+ *
+ * Writes only on change, like the member cookie above — once a session
+ * has settled on `seen` this adds no Set-Cookie header at all.
+ */
+function syncAdminWelcomeCookie(
+  request: NextRequest,
+  response: NextResponse,
+  pathname: string,
+): void {
+  if (pathname !== "/admin" && !pathname.startsWith("/admin/")) return;
+  const current = request.cookies.get(ADMIN_WELCOME_COOKIE)?.value;
+  if (current === ADMIN_WELCOME_SEEN) return;
+
+  response.cookies.set({
+    name: ADMIN_WELCOME_COOKIE,
+    value:
+      current === ADMIN_WELCOME_NEW ? ADMIN_WELCOME_SEEN : ADMIN_WELCOME_NEW,
+    ...adminWelcomeCookieOptions(),
   });
 }
 
@@ -139,5 +174,6 @@ export async function updateSession(request: NextRequest) {
   }
 
   syncMemberCookie(request, response, user);
+  syncAdminWelcomeCookie(request, response, pathname);
   return response;
 }

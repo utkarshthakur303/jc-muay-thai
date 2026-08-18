@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { AdminWelcome } from "@/components/admin/AdminWelcome";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { site } from "@/content/site";
 
 /**
@@ -42,7 +44,15 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-dvh bg-bg">
+    /*
+      `admin-surface` re-points the ground for this subtree only —
+      cool where the members' side is warm, in both themes. See the
+      scoped override in globals.css for the measurements; nothing
+      here names a colour.
+    */
+    <div className="admin-surface min-h-dvh bg-bg">
+      <AdminWelcome />
+
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 sm:px-8">
           <Link
@@ -60,6 +70,22 @@ export function AdminShell({
           <span className="rounded-full bg-ink px-3 py-1 font-mono text-[10px] tracking-[0.12em] text-chalk uppercase">
             Admin
           </span>
+
+          {/*
+            Beside the badge rather than at the end of the nav, and the
+            placement was measured rather than chosen. After the nav it
+            cannot share a row with the pills — a <nav> is one flex item
+            whose list wraps inside itself — so it started a fourth row
+            and took the header from 185px to 237px at 320/360/390, on a
+            screen 780px tall. Here it costs nothing at any width.
+
+            The members' side has had this control in the top bar since
+            the themes shipped; the panel is where the owner spends the
+            longest and was the one surface that could not be switched.
+            Same component, so there is one theme control in the codebase
+            and one storage key behind it.
+          */}
+          <ThemeToggle />
 
           {NAV.length > 1 ? (
             <nav aria-label="Admin" className="ml-auto">

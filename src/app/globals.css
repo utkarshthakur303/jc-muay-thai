@@ -461,6 +461,57 @@
 }
 
 /* ---------------------------------------------------------------
+   SCOPED THEME OVERRIDE: the admin panel's ground.
+
+   The owner and the members share one login and one set of routes, so
+   the only thing telling him which surface he is looking at is the
+   chrome. The `Admin` badge in the header does that up close; this does
+   it from across the room. The marketing site's ground is warm — a
+   near-black with a brown cast, cream in light mode — and the panel's
+   is cool.
+
+   ONLY THE GROUND MOVES. `--card`, `--border` and every text tone are
+   left exactly as they are, because each of those numbers was measured
+   against the surfaces above and re-tinting a card would invalidate the
+   lot — including `--card-gradient`, whose light-mode end stop is
+   already sitting on the AA floor.
+
+   Both values were chosen so that nothing regresses. Every tone
+   measures equal to or better on this ground than on the site's own
+   (the site's figure in brackets):
+
+     dark  #080b12 — text 16.37 (16.37), text-2 7.92 (7.92),
+                     text-3 5.80 (5.79), accent 5.55 (5.55),
+                     danger 6.13 (6.12), card edge 1.05 (1.05)
+     light #f1f3f7 — text 16.01 (15.83), text-2 7.12 (7.04),
+                     text-3 4.63 (4.58), accent 6.04 (5.97),
+                     danger 6.15 (6.08), card edge 1.11 (1.12)
+
+   Light mode is the binding constraint, as it is everywhere in this
+   file: `--text-3` clears AA by 0.13 here against 0.08 on the site
+   ground. A cool grey DARKER than the cream fails outright — #eaedf1
+   measures 4.38:1. Lighter is the only safe direction, and any change
+   to this value has to be re-measured before it ships.
+
+   `--input-bg` follows the ground because that is the relationship it
+   already has in both themes: a field reads as a well cut into the page,
+   and leaving it behind would put a warm well in a cool panel.
+
+   The <body> underneath keeps the site ground. The shell is `min-h-dvh`,
+   so the only place that shows is an overscroll rubber-band.
+   --------------------------------------------------------------- */
+:root .admin-surface,
+:root[data-theme="dark"] .admin-surface {
+  --bg: #080b12;
+  --input-bg: #080b12;
+}
+
+:root[data-theme="light"] .admin-surface {
+  --bg: #f1f3f7;
+  --input-bg: #f1f3f7;
+}
+
+/* ---------------------------------------------------------------
    SIGNED-IN STATE
 
    Both versions of the account control — "Sign in" and the account
@@ -994,6 +1045,105 @@ html[data-member] .guest-only {
 
 @utility milestone-pop {
   animation: jc-milestone 0.5s var(--ease-out-expo) both;
+}
+
+/* ---------------------------------------------------------------
+   ADMIN WELCOME
+
+   A veil over the panel on the first admin page of a browser session:
+   the panel's own ground, a line of type, an accent rule, and then it
+   clears. It exists because the owner's half of this site had no
+   arrival of its own — signing in dropped him onto a page of numbers
+   that looked like every other page.
+
+   Four constraints keep it a greeting rather than an obstacle.
+
+   IT NEVER TAKES A CLICK. `pointer-events: none` from the first frame,
+   so the panel underneath is live for the whole 1.6s. The animation is
+   something to watch or to ignore; it is never something to wait out.
+   `aria-hidden` for the same reason — a screen reader gains nothing
+   from a splash repeating the badge in the header two lines below.
+
+   IT FADES TO `opacity: 0` AND STAYS. Removing the node would need
+   JavaScript holding a timer that has to agree with this duration, and
+   an invisible layer that cannot take a pointer costs nothing.
+
+   IT IS SHOWN ONCE PER BROWSER SESSION, and the decision is made on the
+   server — the markup is simply absent on every page view after the
+   first. See `AdminWelcome.tsx` and `lib/admin/welcome.ts`. Replayed on
+   every visit to /admin it would stop being an arrival and start being a
+   toll gate on the nav.
+
+   REDUCED MOTION NEEDS NO SPECIAL CASE, and the result is the right one:
+   the base layer collapses this to 0.01ms and `both` fill holds the END
+   state, so somebody who has asked for less motion gets no splash at
+   all rather than a frozen one.
+   --------------------------------------------------------------- */
+@keyframes jc-admin-veil {
+  /* Holds while the type lands, then clears. The hold is 62% of the
+     run — shorter and the rule has not finished drawing when the ground
+     starts going. */
+  0%,
+  62% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes jc-admin-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The rule draws itself out from the middle. scaleX rather than width,
+   so it is compositor-only like every other animation in this file. */
+@keyframes jc-admin-rule {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@utility admin-welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1.25rem;
+  padding-inline: 1.5rem;
+  text-align: center;
+  /* Resolves to the ADMIN ground, not the site's — this element sits
+     inside `.admin-surface`, so the veil introduces the colour the
+     panel is about to be painted in. */
+  background: var(--bg);
+  pointer-events: none;
+  animation: jc-admin-veil 1.6s var(--ease-out-expo) both;
+}
+
+/* Each line arrives on the same curve; the stagger is an
+   `animationDelay` on the element, as on the class-load chart's bars. */
+@utility admin-welcome-rise {
+  animation: jc-admin-rise 0.55s var(--ease-out-expo) both;
+}
+
+@utility admin-welcome-rule {
+  height: 2px;
+  width: 3.5rem;
+  border-radius: 2px;
+  background: var(--color-accent);
+  animation: jc-admin-rule 0.6s var(--ease-out-expo) both;
 }
 
 /* ---------------------------------------------------------------
