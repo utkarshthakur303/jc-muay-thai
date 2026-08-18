@@ -2,16 +2,27 @@ import "server-only";
 
 import { isCommitmentSlug, isPlanSlug } from "@/content/plans";
 import type { PlanState } from "@/lib/plans/state";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 
 /**
  * Reading a member's stated plan.
  *
  * Runs through the session-scoped client, never the admin one. The policy
- * in 20260813120000_member_plans.sql is what limits the answer to the
- * member's own row; there is deliberately no `where user_id = ...` here to
- * forget, and swapping in the admin client would silently return the first
- * row of everybody's.
+ * in 20260813120000_member_plans.sql is what makes it impossible to read
+ * somebody else's row, and swapping in the admin client would defeat that.
+ *
+ * THE `user_id` FILTER IS LOAD-BEARING, added 2026-08-19. It used to be
+ * absent on purpose — RLS returned exactly one row, so `.maybeSingle()`
+ * was safe. Then the admin panel added `member_plans_read_all_for_admins`,
+ * an additive SELECT policy, and Postgres ORs those. For the gym owner the
+ * query started matching every row in the table, and `.maybeSingle()`
+ * errors on more than one — which this function reports as
+ * `available: false`, i.e. "the feature is not installed".
+ *
+ * So the whole plan step silently switched itself off for the owner:
+ * /plans redirected to /book and /account dropped its Membership section
+ * entirely. Worse, in the window when exactly one row existed and it was
+ * not his, it would have handed him another member's plan as his own.
  *
  * WHY THIS FAILS OPEN, WHEN THE REST OF THE CODEBASE FAILS LOUDLY
  *
@@ -42,9 +53,15 @@ import { createClient } from "@/lib/supabase/server";
 export async function getPlanState(): Promise<PlanState> {
   const supabase = await createClient();
 
+  const user = await getUser();
+  if (!user) {
+    return { available: false, asked: false, slug: null, commitment: null };
+  }
+
   const { data, error } = await supabase
     .from("member_plans")
     .select("plan_slug,commitment")
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (error) {

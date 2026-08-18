@@ -2,17 +2,39 @@ import "server-only";
 
 import { LEVELS, type LevelId } from "@/content/schedule";
 import { BOOKING_WINDOW_DAYS } from "@/lib/booking/horizon";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 
 /**
  * Reads for the booking pages.
  *
  * Every query here runs through the *session-scoped* client, never the
- * admin one. That is the whole security model: the policies in
- * 20260807120000_class_booking.sql decide what comes back, so a member
- * asking for "bookings" receives their own and there is no `where user_id
- * = ...` in this file to forget. Swapping in the admin client would
- * silently return everybody's.
+ * admin one. RLS remains the enforcement: the policies in
+ * 20260807120000_class_booking.sql are what make it impossible for a
+ * member to read somebody else's booking, and swapping in the admin
+ * client would defeat that no matter what this file asked for.
+ *
+ * ── WHY EVERY QUERY BELOW ALSO FILTERS BY user_id (2026-08-19) ───────
+ * This file used to have no `user_id` filter anywhere, deliberately, on
+ * the grounds that RLS already returned only the member's own rows and a
+ * redundant filter would read as though it were the thing protecting the
+ * data.
+ *
+ * That reasoning was sound until 2026-08-15, when the admin panel added
+ * `bookings_read_all_for_admins` — an additive SELECT policy. Postgres
+ * ORs SELECT policies, so from that day "what RLS lets me see" and "what
+ * is mine" stopped being the same set for one account, and nobody
+ * revisited the files that had been built on them being identical.
+ *
+ * The result was live for four days: signed in as the gym owner,
+ * /account listed all nine bookings in the database as his own, eight of
+ * which belonged to other members. Measured, not theorised — see the
+ * session log for 2026-08-19.
+ *
+ * So the filter is not defence in depth and is not distrust of RLS. RLS
+ * answers "may I see this row"; these pages are asking a different
+ * question — "is this row mine" — and they now ask it out loud. An admin
+ * is still a member, and their own account page is still theirs.
+ * ────────────────────────────────────────────────────────────────────
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -60,13 +82,16 @@ function asCount(value: unknown): number {
 /**
  * Classes a member can book, over the next {@link BOOKING_WINDOW_DAYS}.
  *
- * The embedded `bookings` is not filtered by user here, and does not need
- * to be: RLS applies to embedded resources too, so the only rows that can
- * come back are the member's own. Adding an explicit filter would read as
- * though it were the thing protecting the data, which it is not.
+ * The embedded `bookings` is what drives the "you have booked this" state
+ * on every card, so it has to be *this member's* bookings and nobody
+ * else's. As an admin, unfiltered, it marked all nine bookings in the
+ * database as his — every class anyone had taken showed as booked.
  */
 export async function listBookableClasses(): Promise<BookableClass[]> {
   const supabase = await createClient();
+  const user = await getUser();
+  if (!user) return [];
+
   const now = new Date();
   const until = new Date(now.getTime() + BOOKING_WINDOW_DAYS * DAY_MS);
 
@@ -75,6 +100,9 @@ export async function listBookableClasses(): Promise<BookableClass[]> {
     .select(
       "id,starts_at,ends_at,level,capacity,booked_count,bookings(id,status)",
     )
+    // Filters the embedded rows only — a class nobody has booked still
+    // comes back, with an empty array, which is what "bookable" means.
+    .eq("bookings.user_id", user.id)
     .eq("status", "scheduled")
     .gt("starts_at", now.toISOString())
     .lt("starts_at", until.toISOString())
@@ -116,6 +144,9 @@ async function listMine(
   when: "upcoming" | "past",
 ): Promise<BookedClass[]> {
   const supabase = await createClient();
+  const user = await getUser();
+  if (!user) return [];
+
   const nowIso = new Date().toISOString();
   const upcoming = when === "upcoming";
 
@@ -124,6 +155,7 @@ async function listMine(
     .select(
       "id,starts_at,ends_at,level,status,cancellation_note,bookings!inner(status)",
     )
+    .eq("bookings.user_id", user.id)
     .eq("bookings.status", "booked");
 
   query = upcoming
@@ -173,10 +205,13 @@ export function listPastBookings(): Promise<BookedClass[]> {
  */
 export async function countUpcomingBookings(): Promise<number> {
   const supabase = await createClient();
+  const user = await getUser();
+  if (!user) return 0;
 
   const { count, error } = await supabase
     .from("class_occurrences")
     .select("id,bookings!inner(status)", { count: "exact", head: true })
+    .eq("bookings.user_id", user.id)
     .eq("bookings.status", "booked")
     .gt("starts_at", new Date().toISOString());
 
@@ -197,10 +232,13 @@ export async function countUpcomingBookings(): Promise<number> {
  */
 export async function countPastBookings(): Promise<number> {
   const supabase = await createClient();
+  const user = await getUser();
+  if (!user) return 0;
 
   const { count, error } = await supabase
     .from("class_occurrences")
     .select("id,bookings!inner(status)", { count: "exact", head: true })
+    .eq("bookings.user_id", user.id)
     .eq("bookings.status", "booked")
     .lte("starts_at", new Date().toISOString());
 

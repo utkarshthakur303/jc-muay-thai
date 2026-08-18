@@ -10,10 +10,17 @@ import { createClient, getUser } from "@/lib/supabase/server";
  * Reading a member's attendance.
  *
  * Through the session-scoped client, never the admin one — the select
- * policy in 20260810120000_attendance.sql is what limits this to the
- * member's own rows, and there is deliberately no `where user_id = ...`
- * here to forget. Swapping in the admin client would silently hand back
- * the whole gym's history.
+ * policy in 20260810120000_attendance.sql is what makes another member's
+ * history unreadable, and swapping in the admin client would defeat that.
+ *
+ * The explicit `user_id` filter was added 2026-08-19. `attendance` is the
+ * one member table with NO additive admin policy — the admin migration
+ * left it out as a deliberate product decision, so this file was not
+ * affected by the bug that hit bookings and plans on the same day. It is
+ * filtered anyway, because the only reason it was safe is that somebody
+ * remembered to leave it out of an unrelated migration, and that is not a
+ * property this file can check. If an admin read policy is ever added
+ * here, a streak must not quietly become the whole gym's.
  */
 
 /**
@@ -48,9 +55,13 @@ function asDate(value: unknown): string | null {
 export async function listAttendanceDates(): Promise<string[]> {
   const supabase = await createClient();
 
+  const user = await getUser();
+  if (!user) return [];
+
   const { data, error } = await supabase
     .from("attendance")
     .select("attended_on")
+    .eq("user_id", user.id)
     .order("attended_on", { ascending: false })
     .limit(MAX_ROWS);
 
