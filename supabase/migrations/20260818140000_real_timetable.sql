@@ -94,9 +94,30 @@ where starts_at > now()
 
 -- ── 3. Kids on Tuesday ──────────────────────────────────────────────
 --
--- Local wall-clock times converted per-date, not by adding hours to a
--- UTC instant — 4:00 PM in Jersey City is a different offset either side
--- of the DST change, and `at time zone` resolves each date on its own.
+-- ⚠ THIS BLOCK SHIPPED WRONG ON 2026-08-19 AND CREATED NINE PHANTOM
+-- CLASSES ON PRODUCTION. Corrected here; the rows it made were deleted by
+-- 20260819120000_fix_tuesday_kids.sql. The `d::date` below is the fix, and
+-- it is worth understanding because the failure was silent and plausible.
+--
+-- `AT TIME ZONE` means two opposite things depending on what it is given:
+--
+--   timestamp   AT TIME ZONE z  ->  timestamptz   INTERPRETS the wall
+--                                                 clock AS being in z
+--   timestamptz AT TIME ZONE z  ->  timestamp     CONVERTS the instant TO
+--                                                 z's wall clock
+--
+-- The first is what building a local 16:00 needs. The original got the
+-- second, because `generate_series(current_date, …)` returns TIMESTAMPTZ
+-- — date casts implicitly to both timestamp and timestamptz, and
+-- timestamptz is the preferred type, so overload resolution picks it.
+-- So `d + time '16:00'` was 16:00 UTC, `AT TIME ZONE` turned that into
+-- the naive local 12:00, and inserting a naive timestamp into a
+-- timestamptz column reinterpreted it as 12:00 UTC — which is 08:00 in
+-- Jersey City. Every kids' class landed eight hours early, and every one
+-- of them looked like a perfectly ordinary row.
+--
+-- `d::date + time '16:00'` yields a plain `timestamp`, which takes the
+-- first branch and means what it says.
 --
 -- The 60-day window and the capacity of 16 both mirror the application:
 -- HORIZON_DAYS in src/lib/booking/horizon.ts, and DEFAULT_CLASS_CAPACITY
@@ -106,8 +127,8 @@ insert into public.class_occurrences
   (session_slug, starts_at, ends_at, level, capacity)
 select
   'tue-1600-kids',
-  (d + time '16:00') at time zone 'America/New_York',
-  (d + time '16:45') at time zone 'America/New_York',
+  (d::date + time '16:00') at time zone 'America/New_York',
+  (d::date + time '16:45') at time zone 'America/New_York',
   'kids',
   16
 from generate_series(
