@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { GalleryImage } from "@/content/gallery";
+import type { GalleryPhoto } from "@/lib/images/queries";
 
 /**
  * The gallery, and the lightbox that opens out of it.
@@ -39,7 +39,7 @@ import type { GalleryImage } from "@/content/gallery";
  * immediately.
  */
 
-export function GalleryGrid({ images }: { images: readonly GalleryImage[] }) {
+export function GalleryGrid({ images }: { images: readonly GalleryPhoto[] }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [index, setIndex] = useState(0);
   const [open, setOpen] = useState(false);
@@ -84,7 +84,7 @@ export function GalleryGrid({ images }: { images: readonly GalleryImage[] }) {
     <>
       <ul role="list" className="mt-7 columns-1 gap-4 sm:columns-2 lg:columns-3">
         {images.map((image, position) => (
-          <li key={image.src} className="mb-4 break-inside-avoid">
+          <li key={image.id} className="mb-4 break-inside-avoid">
             {/*
               A button, not a div with a click handler. This is now a real
               control and has to be reachable by keyboard and announced as
@@ -149,7 +149,7 @@ export function GalleryGrid({ images }: { images: readonly GalleryImage[] }) {
         <div className="flex h-dvh w-screen flex-col items-center justify-center gap-3 p-4 sm:p-8">
           {current ? (
             <Image
-              key={current.src}
+              key={current.id}
               src={current.src}
               alt={current.alt}
               width={current.width}

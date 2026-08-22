@@ -4,11 +4,19 @@ import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 
 import { isPlanSlug } from "@/content/plans";
+import { GALLERY_SLOT, isSlotId, slotById } from "@/content/imageSlots";
 import { LEVELS, type LevelId } from "@/content/schedule";
 import { notifyCancellation, type NoticeKind } from "@/lib/admin/notify";
 import { finalCents, type DiscountKind } from "@/lib/admin/quote";
 import { parseMoneyToCents } from "@/lib/format/money";
 import { syncOccurrences } from "@/lib/admin/timetable";
+import {
+  moveGalleryPhoto,
+  removePhoto,
+  updateAlt,
+  uploadPhoto,
+} from "@/lib/admin/photos";
+import { IMAGES_TAG } from "@/lib/images/queries";
 import { TIMETABLE_TAG } from "@/lib/schedule/queries";
 import { createClient, getUser } from "@/lib/supabase/server";
 // Type-only, and it must stay that way: a "use server" module may export
@@ -697,4 +705,124 @@ export async function deleteSession(
 
   const sync = await afterTimetableWrite();
   return { status: "success", message: describe(sync, "Class removed"), sync };
+}
+
+// ── Photographs ──────────────────────────────────────────────────────
+
+/**
+ * Everything the pictures touch.
+ *
+ * `updateTag` rather than `revalidateTag` for the same read-your-own-writes
+ * reason as the timetable — the panel re-renders inside this request and
+ * must not draw the photograph it has just replaced.
+ *
+ * The path list is longer than it looks like it should be because the
+ * hero appears on the sign-in and sign-up screens as well as the home
+ * page. A replaced hero that changed on `/` and not on `/login` would be
+ * the kind of half-applied edit the owner has no way to explain.
+ */
+async function afterPhotoWrite(): Promise<void> {
+  updateTag(IMAGES_TAG);
+  revalidatePath("/");
+  revalidatePath("/login");
+  revalidatePath("/signup");
+  revalidatePath("/admin/photos");
+}
+
+/**
+ * Whether this slot needs a description, decided from the slot list
+ * rather than from the form.
+ *
+ * A hidden field saying "this one is decorative" is a field anybody can
+ * post, and the whole alt-text rule would come off with it.
+ */
+function altRequiredFor(slot: string): boolean {
+  if (slot === GALLERY_SLOT) return true;
+  return isSlotId(slot) ? slotById(slot).needsAlt : true;
+}
+
+export async function uploadPhotoAction(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const slot = formData.get("slot");
+  if (typeof slot !== "string" || (slot !== GALLERY_SLOT && !isSlotId(slot))) {
+    return { status: "error", message: INVALID };
+  }
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return { status: "error", message: INVALID };
+  }
+
+  const alt = formData.get("alt");
+
+  const result = await uploadPhoto({
+    slot,
+    file,
+    alt: typeof alt === "string" ? alt : "",
+    needsAlt: altRequiredFor(slot),
+  });
+
+  if (!result.ok) return { status: "error", message: result.message };
+
+  await afterPhotoWrite();
+  return {
+    status: "success",
+    message:
+      slot === GALLERY_SLOT
+        ? "Photograph added to the gallery."
+        : "Photograph replaced. It is live on the site now.",
+  };
+}
+
+export async function removePhotoAction(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const id = z.string().uuid().safeParse(formData.get("id"));
+  if (!id.success) return { status: "error", message: INVALID };
+
+  const result = await removePhoto(id.data);
+  await afterPhotoWrite();
+
+  return result.ok
+    ? { status: "success", message: "Photograph removed." }
+    : { status: "error", message: result.message };
+}
+
+export async function movePhotoAction(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const id = z.string().uuid().safeParse(formData.get("id"));
+  const direction = formData.get("direction");
+  if (!id.success || (direction !== "up" && direction !== "down")) {
+    return { status: "error", message: INVALID };
+  }
+
+  const result = await moveGalleryPhoto(id.data, direction);
+  if (!result.ok) return { status: "error", message: result.message };
+
+  await afterPhotoWrite();
+  return { status: "success", message: "Order updated." };
+}
+
+export async function updateAltAction(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const id = z.string().uuid().safeParse(formData.get("id"));
+  const slot = formData.get("slot");
+  const alt = formData.get("alt");
+
+  if (!id.success || typeof slot !== "string" || typeof alt !== "string") {
+    return { status: "error", message: INVALID };
+  }
+
+  const result = await updateAlt(id.data, alt, altRequiredFor(slot));
+  if (!result.ok) return { status: "error", message: result.message };
+
+  await afterPhotoWrite();
+  return { status: "success", message: "Description saved." };
 }

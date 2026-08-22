@@ -1,6 +1,6 @@
 import { GalleryGrid } from "@/components/gallery/GalleryGrid";
 import { Section } from "@/components/layout/Section";
-import { galleryImages } from "@/content/gallery";
+import type { GalleryPhoto } from "@/lib/images/queries";
 
 /**
  * Photographs of the training floor.
@@ -38,15 +38,34 @@ import { galleryImages } from "@/content/gallery";
  *
  * This stays a Server Component; only the grid below it is interactive, so
  * only the grid ships JavaScript.
+ *
+ * ── AN EMPTY GALLERY REMOVES THE SECTION ────────────────────────────
+ * Not an empty grid, not a "photographs coming soon" line — the section
+ * is not rendered at all, and the page closes up around it. The client
+ * chose this on 2026-08-23 over the alternative of the built-in
+ * photographs reappearing, which would have meant deleting them did not
+ * stick.
+ *
+ * This is the one place the whole feature can change the shape of the
+ * home page, so it is worth being blunt about: the panel says so out
+ * loud on the Photos screen rather than leaving the owner to discover it
+ * by looking at the live site.
+ * ────────────────────────────────────────────────────────────────────
  */
-export function GallerySection() {
+export function GallerySection({
+  photos,
+}: {
+  photos: readonly GalleryPhoto[];
+}) {
+  if (photos.length === 0) return null;
+
   return (
     <Section
       id="gallery"
       title="GALLERY"
       intro="Bag work, pad rounds and sparring — the ordinary week at the gym. Tap any photograph to see it full size."
     >
-      <GalleryGrid images={galleryImages} />
+      <GalleryGrid images={photos} />
     </Section>
   );
 }

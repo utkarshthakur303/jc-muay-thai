@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { LogoMark } from "@/components/ui/Icon";
+import { getSiteImages } from "@/lib/images/queries";
 
 type AuthShellProps = {
   /** Small mono eyebrow above the heading, e.g. "Members". */
@@ -24,26 +25,43 @@ type AuthShellProps = {
  * Column ratio and padding both step up at xl. At lg with the wider ratio the
  * form column computed narrower than the single-column layout it replaces,
  * which made the form visibly shrink as the window grew past 1024px.
+ *
+ * ── IT FETCHES ITS OWN PHOTOGRAPH, AND THAT IS DELIBERATE ───────────
+ * The hero moved into the database on 2026-08-23 so the gym can replace
+ * it. This screen shows the same picture as the home page, and it has to
+ * keep doing so — a replaced hero that changed on `/` but not on
+ * `/login` is a half-applied edit the owner has no way to explain.
+ *
+ * Fetching here rather than threading a prop through all three auth
+ * pages costs nothing: the response is cached under the `site-images`
+ * tag, so the three routes share one request, and a plain fetch does not
+ * touch `cookies()` — these pages stay prerendered exactly as they were.
+ * ────────────────────────────────────────────────────────────────────
  */
-export function AuthShell({
+export async function AuthShell({
   eyebrow,
   heading,
   subheading,
   children,
   footer,
 }: AuthShellProps) {
+  const { slots } = await getSiteImages();
+  const hero = slots.hero;
+
   return (
     <main className="min-h-dvh lg:grid lg:grid-cols-[1fr_1fr] xl:grid-cols-[1.1fr_1fr]">
       {/* Photographic panel */}
       <div className="relative isolate hidden overflow-hidden lg:block">
-        <Image
-          src="/images/hero.jpeg"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 1024px) 0px, 55vw"
-          className="object-cover"
-        />
+        {hero ? (
+          <Image
+            src={hero.src}
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 1024px) 0px, 55vw"
+            className="object-cover"
+          />
+        ) : null}
         {/* Fixed dark scrim in both themes: this is a photo, not a themed
             surface, and light-theme text was unreadable over bright patches. */}
         <div aria-hidden className="scrim-photo absolute inset-0" />
@@ -86,14 +104,16 @@ export function AuthShell({
           smallest srcset candidate for this hidden copy instead of fetching
           the full-width image twice.
         */}
-        <Image
-          src="/images/hero.jpeg"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 1023px) 100vw, 0px"
-          className="object-cover lg:hidden"
-        />
+        {hero ? (
+          <Image
+            src={hero.src}
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 1023px) 100vw, 0px"
+            className="object-cover lg:hidden"
+          />
+        ) : null}
         {/* Scrim carrying the text contrast. Strongest at top and bottom,
             where the brand lockup and the terms copy sit. */}
         <div

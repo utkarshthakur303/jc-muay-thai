@@ -4,6 +4,7 @@ import { LiveClassStatus } from "@/components/home/LiveClassStatus";
 import { PromoCard } from "@/components/home/PromoCard";
 import { StatCard } from "@/components/home/StatCard";
 import { site } from "@/content/site";
+import type { SiteImages } from "@/lib/images/queries";
 import type { TimetableEntry } from "@/lib/schedule/queries";
 
 /**
@@ -28,13 +29,15 @@ import type { TimetableEntry } from "@/lib/schedule/queries";
  */
 export function HomeSection({
   timetable,
+  images,
 }: {
   timetable: readonly TimetableEntry[];
+  images: SiteImages;
 }) {
   return (
     <section id="home" aria-label="Introduction">
       <div className="grid grid-cols-1 gap-4 perspective-[1600px] lg:h-[calc(100dvh-152px)] lg:min-h-140 lg:grid-cols-[1.3fr_1fr_1fr] lg:grid-rows-[repeat(3,minmax(150px,1fr))] lg:gap-4.5">
-        <HeroCard />
+        <HeroCard image={images.slots.hero} />
 
         <StatCard
           label={`In ${site.city}`}
@@ -50,7 +53,7 @@ export function HomeSection({
           <LiveClassStatus timetable={timetable} />
         </StatCard>
 
-        <PromoCard />
+        <PromoCard image={images.slots.promo} />
         <ClassLoadChart timetable={timetable} />
       </div>
     </section>

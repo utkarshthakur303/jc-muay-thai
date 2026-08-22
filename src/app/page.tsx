@@ -4,6 +4,7 @@ import { GallerySection } from "@/components/gallery/GallerySection";
 import { HomeSection } from "@/components/home/HomeSection";
 import { ScheduleSection } from "@/components/schedule/ScheduleSection";
 import { SiteChrome } from "@/components/layout/SiteChrome";
+import { getSiteImages } from "@/lib/images/queries";
 import { getTimetable } from "@/lib/schedule/queries";
 
 /**
@@ -43,17 +44,30 @@ import { getTimetable } from "@/lib/schedule/queries";
  * If the build output ever shows this route as `ƒ (Dynamic)`, something
  * in this tree started reading the session. That is a regression, not a
  * detail.
+ *
+ * ── THE PHOTOGRAPHS ARE FETCHED THE SAME WAY, AND IN PARALLEL ───────
+ * Added 2026-08-23, when the pictures moved out of `public/images` and
+ * into the database so the gym can change its own. Same constraints,
+ * same solution: a cookie-free tagged fetch, once, with the result
+ * passed down as props.
+ *
+ * `Promise.all` rather than two awaits — they do not depend on each
+ * other, and sequencing them would put one round trip in front of the
+ * other for no reason on every cold build.
  * ────────────────────────────────────────────────────────────────────
  */
 export default async function HomePage() {
-  const timetable = await getTimetable();
+  const [timetable, images] = await Promise.all([
+    getTimetable(),
+    getSiteImages(),
+  ]);
 
   return (
     <SiteChrome>
-      <HomeSection timetable={timetable} />
-      <ClassesSection timetable={timetable} />
+      <HomeSection timetable={timetable} images={images} />
+      <ClassesSection timetable={timetable} images={images} />
       <ScheduleSection timetable={timetable} />
-      <GallerySection />
+      <GallerySection photos={images.gallery} />
       <ContactSection timetable={timetable} />
     </SiteChrome>
   );

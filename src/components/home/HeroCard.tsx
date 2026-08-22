@@ -1,4 +1,6 @@
 import Image from "next/image";
+
+import type { SiteImage } from "@/lib/images/queries";
 import Link from "next/link";
 
 import { PrimaryCta } from "@/components/layout/PrimaryCta";
@@ -28,20 +30,35 @@ import { site, trialOffer } from "@/content/site";
  *    mean nothing to anyone else. The hero is the most valuable space on
  *    the site; it gets the real primary action and one real alternative.
  */
-export function HeroCard() {
+export function HeroCard({ image }: { image: SiteImage | null }) {
   return (
     <TiltCard className="card-photo card-hover @container flex min-h-[70svh] shadow-hero lg:col-start-1 lg:row-span-3 lg:min-h-0">
-      <Image
-        src="/images/hero.jpeg"
-        alt=""
-        fill
-        priority
-        // Below lg the card is the full content column; above it, roughly
-        // a third of a 1440px shell. Getting this wrong is what makes a
-        // browser download a 1600px image to paint it 480px wide.
-        sizes="(max-width: 1023px) 100vw, 35vw"
-        className="-z-10 object-cover"
-      />
+      {/*
+        Null only if somebody empties this slot in the database, which the
+        panel does not offer — reverting it restores the built-in
+        photograph rather than removing one. Handled anyway: the card
+        keeps its scrim, its copy and its buttons and simply has no
+        picture behind them, which is a degraded hero rather than a
+        crashed page.
+
+        `alt=""` is deliberate and is why this slot does not ask for a
+        description. The copy on top already says the gym's name and its
+        city; announcing the photograph as well would make a screen
+        reader read the same thing twice.
+      */}
+      {image ? (
+        <Image
+          src={image.src}
+          alt=""
+          fill
+          priority
+          // Below lg the card is the full content column; above it, roughly
+          // a third of a 1440px shell. Getting this wrong is what makes a
+          // browser download a 1600px image to paint it 480px wide.
+          sizes="(max-width: 1023px) 100vw, 35vw"
+          className="-z-10 object-cover"
+        />
+      ) : null}
       <div aria-hidden className="scrim-hero absolute inset-0 -z-10" />
 
       <div className="flex w-full flex-col justify-end p-6 sm:p-8 lg:p-[clamp(20px,3vw,40px)]">

@@ -1,5 +1,20 @@
 /**
- * Gallery photographs.
+ * Gallery photographs — THE FALLBACK, not the live list.
+ *
+ * ── READ THIS BEFORE EDITING (2026-08-23) ───────────────────────────
+ * These five stopped being what the site renders when the photographs
+ * moved into the `site_images` table so the gym could change its own.
+ * The home page reads `getSiteImages()`; this array is what it falls
+ * back to when that table is missing or unreachable — which is a real
+ * state, because migrations here are applied by hand and the code goes
+ * live first.
+ *
+ * So it is deliberately the exact set that was on the site the day
+ * before, and it should be left that way: its whole job is to make a
+ * failed read look like the previous version of the site rather than a
+ * blank section. Adding a photograph HERE puts it nowhere. Add it in the
+ * panel.
+ * ────────────────────────────────────────────────────────────────────
  *
  * The mockup's gallery listed eight images, but the site only had eight
  * images in total — five of which are already on screen as the hero, the

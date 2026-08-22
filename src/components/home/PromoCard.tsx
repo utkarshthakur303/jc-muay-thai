@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import type { SiteImage } from "@/lib/images/queries";
+
 import { TiltCard } from "@/components/ui/TiltCard";
 import { trialOffer } from "@/content/site";
 
@@ -25,18 +27,20 @@ import { trialOffer } from "@/content/site";
  * copy on the page and therefore the worst possible place to be wrong
  * about money.
  */
-export function PromoCard() {
+export function PromoCard({ image }: { image: SiteImage | null }) {
   return (
     <TiltCard className="card-photo card-hover copy-on-photo flex min-h-45 lg:col-start-2 lg:col-span-2 lg:row-start-2">
-      <Image
-        src="/images/promo.jpeg"
-        alt=""
-        fill
-        // Not `priority`: this sits below the hero on every viewport, so
-        // preloading it would compete with the LCP image for bandwidth.
-        sizes="(max-width: 1023px) 100vw, 45vw"
-        className="-z-10 object-cover opacity-55"
-      />
+      {image ? (
+        <Image
+          src={image.src}
+          alt=""
+          fill
+          // Not `priority`: this sits below the hero on every viewport, so
+          // preloading it would compete with the LCP image for bandwidth.
+          sizes="(max-width: 1023px) 100vw, 45vw"
+          className="-z-10 object-cover opacity-55"
+        />
+      ) : null}
       <div aria-hidden className="scrim-promo absolute inset-0 -z-10" />
 
       <div className="flex w-full flex-col justify-center px-5 py-6 sm:px-8 lg:px-[clamp(20px,3vw,40px)]">

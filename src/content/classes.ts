@@ -1,9 +1,11 @@
+import { classSlot, type SlotId } from "@/content/imageSlots";
 import {
   durationRangeForLevel,
   sessionsForLevel,
   type LevelId,
   type Session,
 } from "@/content/schedule";
+import type { SiteImage } from "@/lib/images/queries";
 
 /**
  * The four classes shown in the Classes section.
@@ -109,19 +111,39 @@ export type ClassLevel = ClassLevelContent & {
 };
 
 /**
- * Joined against a timetable rather than the module-level one.
+ * Joined against a timetable and a set of photographs rather than the
+ * module-level ones.
  *
  * "10 sessions a week" and "60 min" are read off whatever schedule is
  * actually in force, so an owner who moves a class sees the class cards
- * follow in the same edit.
+ * follow in the same edit. Since 2026-08-23 the same is true of the
+ * pictures: `image` and `imageAlt` above are the photographs that shipped
+ * with the site, and the slot overrides them when the gym has uploaded
+ * one of its own.
+ *
+ * A slot of null keeps the card photoless — which is Kids' resting
+ * state, and the whole reason the two fields were nullable to begin
+ * with.
  */
 export function getClassLevels(
   timetable: readonly Session[],
+  slots?: Readonly<Partial<Record<SlotId, SiteImage | null>>>,
 ): readonly ClassLevel[] {
-  return classLevels.map((level, index) => ({
-    ...level,
-    number: String(index + 1).padStart(2, "0"),
-    sessionsPerWeek: sessionsForLevel(timetable, level.id).length,
-    duration: durationRangeForLevel(timetable, level.id),
-  }));
+  return classLevels.map((level, index) => {
+    // `undefined` means no opinion — use what is in this file. `null`
+    // means the slot is deliberately empty, which is a different thing
+    // and must not fall back to the built-in picture.
+    const override = slots?.[classSlot(level.id)];
+    const photo = override === undefined ? null : override;
+
+    return {
+      ...level,
+      ...(slots
+        ? { image: photo?.src ?? null, imageAlt: photo?.alt ?? null }
+        : {}),
+      number: String(index + 1).padStart(2, "0"),
+      sessionsPerWeek: sessionsForLevel(timetable, level.id).length,
+      duration: durationRangeForLevel(timetable, level.id),
+    };
+  });
 }

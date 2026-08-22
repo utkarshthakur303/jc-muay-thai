@@ -3,6 +3,7 @@ import { PrimaryCta } from "@/components/layout/PrimaryCta";
 import { Section } from "@/components/layout/Section";
 import { getClassLevels } from "@/content/classes";
 import { totalWeeklySessions } from "@/content/schedule";
+import type { SiteImages } from "@/lib/images/queries";
 import type { TimetableEntry } from "@/lib/schedule/queries";
 import { trialOffer } from "@/content/site";
 
@@ -27,10 +28,12 @@ import { trialOffer } from "@/content/site";
  */
 export function ClassesSection({
   timetable,
+  images,
 }: {
   timetable: readonly TimetableEntry[];
+  images: SiteImages;
 }) {
-  const levels = getClassLevels(timetable);
+  const levels = getClassLevels(timetable, images.slots);
 
   return (
     <Section
