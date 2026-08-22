@@ -307,10 +307,25 @@ export async function removePhoto(id: string): Promise<PhotoResult> {
 
   const path = typeof row?.storage_path === "string" ? row.storage_path : null;
   if (path) {
-    const { error: storageError } = await supabase.storage
+    const { data: purged, error: storageError } = await supabase.storage
       .from(BUCKET)
       .remove([path]);
-    if (storageError) {
+
+    /**
+     * THE SAME TRAP AS POSTGREST, IN A SECOND PLACE.
+     *
+     * `.remove()` answers a refused delete with HTTP 200 and an EMPTY
+     * ARRAY — no error, no exception, nothing to catch. Checking only
+     * `storageError` reports a deletion that did not happen, which is
+     * exactly what shipped on 2026-08-23: the rows went, every file
+     * stayed, and the panel said "Photograph removed."
+     *
+     * The cause was a missing SELECT policy on storage.objects — the
+     * delete could not SEE the object, so it deleted nothing and called
+     * that success. Fixed in 20260823130000. This check is what makes
+     * the next such failure visible instead of silent.
+     */
+    if (storageError || !purged || purged.length === 0) {
       // The picture IS off the site, which is what was asked for. Saying
       // so beats reporting a failure that would send the owner back to
       // press a button that has already worked.

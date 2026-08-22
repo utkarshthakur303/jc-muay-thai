@@ -74,6 +74,14 @@ on conflict (id) do update
 -- refused by Postgres rather than by a TypeScript check somebody has to
 -- remember to write.
 --
+-- ⚠ THIS NEXT CLAIM WAS WRONG, AND 20260823130000 FIXES IT. It is true
+-- that a public bucket is SERVED through /storage/v1/object/public/...
+-- without consulting RLS — and false that no SELECT policy is therefore
+-- needed. Storage resolves a DELETE by looking the object up first, so
+-- without SELECT the delete matches nothing and returns 200 with an
+-- empty array. Every removal left its file behind and reported success.
+--
+-- Original reasoning, kept because the mistake is instructive:
 -- No SELECT policy is needed: a public bucket is served through
 -- /storage/v1/object/public/... which does not consult RLS at all.
 --

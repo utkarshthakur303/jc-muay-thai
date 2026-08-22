@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { useActiveSection } from "@/components/layout/ActiveSection";
 import { Icon } from "@/components/ui/Icon";
-import { navSections } from "@/content/site";
+import type { NavSection } from "@/content/site";
 
 /**
  * The rail's phone counterpart: same accent surface, same ink content, same
@@ -48,7 +48,11 @@ import { navSections } from "@/content/site";
  * to clip CLASSES and CONTACT — the exact failure the paragraph above
  * describes. It lives in the top bar on phones instead. This bar is full.
  */
-export function MobileNav() {
+export function MobileNav({
+  sections,
+}: {
+  sections: readonly NavSection[];
+}) {
   const active = useActiveSection();
 
   return (
@@ -57,7 +61,7 @@ export function MobileNav() {
       className="fixed inset-x-4 bottom-4 z-40 flex items-stretch gap-1 rounded-4xl bg-accent px-2 py-2 shadow-float lg:hidden"
     >
       <ul role="list" className="flex flex-1 items-stretch gap-1">
-        {navSections.map((section) => {
+        {sections.map((section) => {
           const isActive = active === section.id;
           return (
             <li key={section.id} className="min-w-0 flex-1">

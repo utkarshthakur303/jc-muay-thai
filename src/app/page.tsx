@@ -4,6 +4,7 @@ import { GallerySection } from "@/components/gallery/GallerySection";
 import { HomeSection } from "@/components/home/HomeSection";
 import { ScheduleSection } from "@/components/schedule/ScheduleSection";
 import { SiteChrome } from "@/components/layout/SiteChrome";
+import { navSections } from "@/content/site";
 import { getSiteImages } from "@/lib/images/queries";
 import { getTimetable } from "@/lib/schedule/queries";
 
@@ -62,8 +63,20 @@ export default async function HomePage() {
     getSiteImages(),
   ]);
 
+  /**
+   * The nav lists the sections that are actually rendered below.
+   *
+   * GallerySection returns null when the gym has no photographs, so the
+   * Gallery item would otherwise be a link scrolling to an id that does
+   * not exist — and the active-section observer would be watching for an
+   * element that never arrives.
+   */
+  const sections = navSections.filter(
+    (section) => section.id !== "gallery" || images.gallery.length > 0,
+  );
+
   return (
-    <SiteChrome>
+    <SiteChrome sections={sections}>
       <HomeSection timetable={timetable} images={images} />
       <ClassesSection timetable={timetable} images={images} />
       <ScheduleSection timetable={timetable} />

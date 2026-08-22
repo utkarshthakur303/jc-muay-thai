@@ -5,11 +5,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import type { GalleryPhoto } from "@/lib/images/queries";
-import {
-  movePhotoAction,
-  removePhotoAction,
-  updateAltAction,
-} from "@/lib/admin/actions";
+import { updateAltAction } from "@/lib/admin/actions";
 import { initialAdminState } from "@/lib/admin/state";
 
 /**
@@ -43,6 +39,8 @@ export function GalleryPhotoRow({
   index,
   total,
   editable,
+  remove,
+  move,
 }: {
   photo: GalleryPhoto;
   index: number;
@@ -58,10 +56,17 @@ export function GalleryPhotoRow({
    * instruction that deleted the mockup's fake "3 spots left" drawer.
    */
   editable: boolean;
+  /**
+   * Owned by GalleryList, not by this row.
+   *
+   * Removing a photograph unmounts this component, so an error it
+   * returned could never be rendered here — see the header of
+   * GalleryList. The row dispatches; the list reports.
+   */
+  remove: (formData: FormData) => void;
+  move: (formData: FormData) => void;
 }) {
   const [altState, saveAlt] = useActionState(updateAltAction, initialAdminState);
-  const [removeState, remove] = useActionState(removePhotoAction, initialAdminState);
-  const [, move] = useActionState(movePhotoAction, initialAdminState);
   const [confirming, setConfirming] = useState(false);
 
   return (
@@ -203,11 +208,6 @@ export function GalleryPhotoRow({
           </p>
         ) : null}
 
-        {removeState.status === "error" && removeState.message ? (
-          <p role="status" className="mt-2 text-[13px] leading-relaxed text-danger">
-            {removeState.message}
-          </p>
-        ) : null}
         </>
         ) : (
           <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-text-2">

@@ -1,5 +1,5 @@
 import { AdminShell } from "@/components/admin/AdminShell";
-import { GalleryPhotoRow } from "@/components/admin/GalleryPhotoRow";
+import { GalleryList } from "@/components/admin/GalleryList";
 import { PhotoUploadForm } from "@/components/admin/PhotoUploadForm";
 import { SlotCard } from "@/components/admin/SlotCard";
 import { GALLERY_SLOT, IMAGE_SLOTS } from "@/content/imageSlots";
@@ -118,17 +118,7 @@ export default async function AdminPhotosPage() {
             appear on the home page at all. Add one below and it comes back.
           </p>
         ) : (
-          <ul role="list" className="mt-2 flex flex-col">
-            {gallery.map((photo, index) => (
-              <GalleryPhotoRow
-                key={photo.id}
-                photo={photo}
-                index={index}
-                total={gallery.length}
-                editable={editable}
-              />
-            ))}
-          </ul>
+          <GalleryList photos={gallery} editable={editable} />
         )}
 
         {editable ? (

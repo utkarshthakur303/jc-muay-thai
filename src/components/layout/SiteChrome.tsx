@@ -3,7 +3,7 @@ import { ActiveSectionProvider } from "@/components/layout/ActiveSection";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { SidebarRail } from "@/components/layout/SidebarRail";
 import { TopBar } from "@/components/layout/TopBar";
-import { sectionIds, site } from "@/content/site";
+import { navSections, site, type NavSection } from "@/content/site";
 
 /**
  * Page frame: fixed navigation on three surfaces, plus the scrolling
@@ -25,9 +25,29 @@ import { sectionIds, site } from "@/content/site";
  * with the padding on <main> itself, content on a wide screen would hug
  * the rail instead of centring.
  */
-export function SiteChrome({ children }: { children: React.ReactNode }) {
+export function SiteChrome({
+  children,
+  sections = navSections,
+}: {
+  children: React.ReactNode;
+  /**
+   * The sections that are actually on the page.
+   *
+   * Defaulted rather than required, because every caller but the home
+   * page renders all of them — but the home page can now render four.
+   * The gallery disappears when the gym has no photographs, and a nav
+   * that still advertises it is a link that scrolls nowhere and an
+   * observer watching for an element that will never intersect.
+   *
+   * Found on 2026-08-23 by checking the nav after emptying the gallery,
+   * rather than by reasoning about it. The comment in page.tsx claiming
+   * "the rail cannot advertise a section that is not here" had been true
+   * only because the section list was a constant.
+   */
+  sections?: readonly NavSection[];
+}) {
   return (
-    <ActiveSectionProvider sectionIds={sectionIds}>
+    <ActiveSectionProvider sectionIds={sections.map((section) => section.id)}>
       <StreakProvider>
         {/*
         Removed at the client's request: a "Skip to content" link used to
@@ -42,9 +62,9 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
 
         <main id="main"> keeps its id, so restoring this is one anchor.
       */}
-        <SidebarRail />
+        <SidebarRail sections={sections} />
         <TopBar />
-        <MobileNav />
+        <MobileNav sections={sections} />
 
         <div className="lg:pl-(--layout-rail-offset)">
           <main id="main" className="page-shell pt-24 pb-32 lg:pt-30 lg:pb-20">

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { StreakButton } from "@/components/attendance/StreakButton";
 import { useActiveSection } from "@/components/layout/ActiveSection";
 import { Icon, LogoMark } from "@/components/ui/Icon";
-import { navSections, site, trialOffer } from "@/content/site";
+import { site, trialOffer, type NavSection } from "@/content/site";
 
 /**
  * The orange rail — the signature element of the approved design. Desktop
@@ -23,7 +23,11 @@ import { navSections, site, trialOffer } from "@/content/site";
  * inside itself and everything else stays put — see the note on the scroll
  * container below, which is why the streak sits outside it.
  */
-export function SidebarRail() {
+export function SidebarRail({
+  sections,
+}: {
+  sections: readonly NavSection[];
+}) {
   const active = useActiveSection();
 
   return (
@@ -56,7 +60,7 @@ export function SidebarRail() {
         role="list"
         className="flex min-h-0 shrink flex-col items-center gap-1.5 overflow-y-auto"
       >
-        {navSections.map((section) => {
+        {sections.map((section) => {
           const isActive = active === section.id;
           return (
             <li key={section.id}>
