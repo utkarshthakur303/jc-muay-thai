@@ -41,6 +41,32 @@ import { createClient } from "@/lib/supabase/server";
 /** How far ahead the editor rebuilds. Matches what /book will offer. */
 const SYNC_DAYS = 60;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Identity of a dated class: its session, and the INSTANT it starts.
+ *
+ * Keyed on `Date.parse` rather than the timestamp string, and this is the
+ * single most important line in the file. Postgres renders a timestamptz
+ * as `2026-10-10T17:00:00+00:00`; `Date.toISOString()` renders the very
+ * same instant as `2026-10-10T17:00:00.000Z`. Comparing those as strings
+ * says they are different classes.
+ *
+ * That bug shipped on 2026-08-22 and was caught by the first real test of
+ * it: because no existing class ever matched a generated one, a single
+ * edit treated the ENTIRE calendar as orphaned and deleted 267 classes.
+ * The booked one survived — the guarantee held, which is the only reason
+ * this is a story about a near miss — but nothing else did.
+ *
+ * Two representations of one instant must compare equal. Parsing to
+ * epoch milliseconds is what makes that true regardless of how either
+ * side chose to spell it.
+ */
+function occurrenceKey(slug: string, startsAt: string): string {
+  const instant = Date.parse(startsAt);
+  return `${slug}@${Number.isNaN(instant) ? startsAt : instant}`;
+}
+
 export type SyncReport = {
   /** Future classes created for sessions that gained them. */
   readonly created: number;
@@ -100,7 +126,7 @@ export async function syncOccurrences(): Promise<SyncReport> {
    * which is exactly what makes "this occurrence no longer belongs to any
    * session" a decidable question rather than a guess.
    */
-  const wanted = generateOccurrences(timetable, {
+  const wantedIncludingToday = generateOccurrences(timetable, {
     from: now,
     days: SYNC_DAYS,
     timeZone: site.timeZone,
@@ -112,25 +138,58 @@ export async function syncOccurrences(): Promise<SyncReport> {
     },
   });
 
+  /**
+   * FUTURE ONLY, and this is not tidying — it is what makes the insert
+   * possible at all.
+   *
+   * `generateOccurrences` starts at today's DATE, so at 11pm it happily
+   * produces this morning's 9am class. The RLS policy on
+   * `class_occurrences` requires `starts_at > now()`, and Postgres
+   * evaluates that per row against a MULTI-ROW insert: one draft in the
+   * past makes the entire batch fail with 42501, and every class the edit
+   * should have created silently never appears.
+   *
+   * That is precisely what happened on the first live test of this
+   * feature — seven classes removed, zero created, no error on screen.
+   * A class in the past is not something an edit to next week's timetable
+   * should be creating anyway, so dropping them is both the fix and the
+   * correct behaviour.
+   */
+  const wanted = wantedIncludingToday.filter(
+    (draft) => Date.parse(draft.starts_at) > now.getTime(),
+  );
+
   const wantedKeys = new Set(
-    wanted.map((draft) => `${draft.session_slug}@${draft.starts_at}`),
+    wanted.map((draft) => occurrenceKey(draft.session_slug, draft.starts_at)),
   );
   const capacityBySlug = new Map(
     timetable.map((entry) => [sessionSlug(entry), entry.capacity]),
   );
 
-  // Everything currently on the calendar from here on.
+  /**
+   * Everything on the calendar INSIDE the window this function just
+   * generated for — not simply everything in the future.
+   *
+   * The bound matters. `wanted` describes the next SYNC_DAYS and nothing
+   * beyond, so an occurrence further out than that is not "orphaned", it
+   * is merely outside the question being asked. Without the upper bound,
+   * lengthening the horizon later would make this delete the tail of the
+   * calendar every time the owner edited a class.
+   */
+  const windowEnd = new Date(now.getTime() + SYNC_DAYS * DAY_MS);
+
   const { data: existing, error } = await supabase
     .from("class_occurrences")
     .select("id,session_slug,starts_at,level,capacity,booked_count,status")
     .gt("starts_at", now.toISOString())
+    .lt("starts_at", windowEnd.toISOString())
     .limit(2000);
 
   if (error || !existing) return emptyReport;
 
   const existingKeys = new Set(
-    existing.map(
-      (row) => `${asString(row.session_slug)}@${asString(row.starts_at)}`,
+    existing.map((row) =>
+      occurrenceKey(asString(row.session_slug), asString(row.starts_at)),
     ),
   );
 
@@ -139,7 +198,7 @@ export async function syncOccurrences(): Promise<SyncReport> {
   const orphans = existing.filter(
     (row) =>
       !wantedKeys.has(
-        `${asString(row.session_slug)}@${asString(row.starts_at)}`,
+        occurrenceKey(asString(row.session_slug), asString(row.starts_at)),
       ),
   );
 
@@ -161,7 +220,7 @@ export async function syncOccurrences(): Promise<SyncReport> {
      * a trigger, so "0" is the database's own answer to "has anybody
      * booked this", not this function's opinion.
      */
-    const { data: gone } = await supabase
+    const { data: gone, error: deleteError } = await supabase
       .from("class_occurrences")
       .delete()
       .in(
@@ -170,18 +229,24 @@ export async function syncOccurrences(): Promise<SyncReport> {
       )
       .select("id");
 
+    // Reported, not swallowed. A delete that fails silently leaves the
+    // calendar disagreeing with the timetable, which is the state this
+    // whole function exists to prevent.
+    if (deleteError) return { ...emptyReport, flagged };
+
     removed = gone?.length ?? 0;
   }
 
   /* ── 2. Create what it now describes and the calendar lacks ────── */
 
   const missing = wanted.filter(
-    (draft) => !existingKeys.has(`${draft.session_slug}@${draft.starts_at}`),
+    (draft) =>
+      !existingKeys.has(occurrenceKey(draft.session_slug, draft.starts_at)),
   );
 
   let created = 0;
   if (missing.length > 0) {
-    const { data: made } = await supabase
+    const { data: made, error: insertError } = await supabase
       .from("class_occurrences")
       .upsert(missing, {
         onConflict: "session_slug,starts_at",
@@ -189,12 +254,24 @@ export async function syncOccurrences(): Promise<SyncReport> {
       })
       .select("id");
 
+    /**
+     * Also reported rather than swallowed, and this one bit hard: when the
+     * key comparison was broken, every draft looked missing, the insert
+     * failed, `data` came back null, and `created` quietly read 0 — so the
+     * panel announced "267 removed" and said nothing at all about having
+     * created none. A silent zero is the worst possible reading of a
+     * failed write.
+     */
+    if (insertError) return { created: 0, removed, flagged, capacityBlocked: [] };
+
     created = made?.length ?? 0;
   }
 
   /* ── 3. Push capacity changes onto classes that survived ───────── */
 
   // Mutable while building; the readonly type is the contract to callers.
+  // capacityBlocked is declared after the early returns above so those
+  // paths cannot report a partial list as a complete one.
   const capacityBlocked: {
     startsAt: string;
     level: LevelId;

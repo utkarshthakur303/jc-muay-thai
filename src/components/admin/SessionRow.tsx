@@ -13,6 +13,7 @@ import {
 import { deleteSession, updateSession } from "@/lib/admin/actions";
 import { initialAdminState } from "@/lib/admin/state";
 import { formatRangeCompact } from "@/lib/format/time";
+import { SyncReportNote } from "@/components/admin/SyncReportNote";
 import type { TimetableEntry } from "@/lib/schedule/queries";
 
 /**
@@ -166,6 +167,17 @@ export function SessionRow({
             {removeState.message}
           </p>
         ) : null}
+
+        {/*
+          Removing a class is the likeliest way to orphan one somebody has
+          booked, so the report belongs here as much as on the edit form.
+          It was wired only into "Add a class" at first, which meant the
+          one path that could strand a member was the one that said
+          nothing.
+        */}
+        <div className="w-full">
+          <SyncReportNote sync={removeState.sync} />
+        </div>
       </li>
     );
   }
@@ -278,6 +290,8 @@ export function SessionRow({
             </p>
           ) : null}
         </div>
+
+        <SyncReportNote sync={state.sync} />
       </form>
     </li>
   );
