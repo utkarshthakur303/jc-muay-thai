@@ -3,6 +3,7 @@ import { PrimaryCta } from "@/components/layout/PrimaryCta";
 import { Section } from "@/components/layout/Section";
 import { getClassLevels } from "@/content/classes";
 import { totalWeeklySessions } from "@/content/schedule";
+import type { TimetableEntry } from "@/lib/schedule/queries";
 import { trialOffer } from "@/content/site";
 
 /**
@@ -24,14 +25,18 @@ import { trialOffer } from "@/content/site";
  * no choice — the cards are here to inform, and the decision comes after
  * reading them.
  */
-export function ClassesSection() {
-  const levels = getClassLevels();
+export function ClassesSection({
+  timetable,
+}: {
+  timetable: readonly TimetableEntry[];
+}) {
+  const levels = getClassLevels(timetable);
 
   return (
     <Section
       id="classes"
       title="CLASSES"
-      meta={`${totalWeeklySessions} sessions a week · all levels welcome`}
+      meta={`${totalWeeklySessions(timetable)} sessions a week · all levels welcome`}
       intro="Every class is coached start to finish. Start where you are — most people walk in with no combat sports background at all — and move up when your coach says you are ready."
     >
       {/*

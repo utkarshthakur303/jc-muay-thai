@@ -27,6 +27,7 @@ import { site } from "@/content/site";
 const NAV = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/classes", label: "Classes" },
+  { href: "/admin/timetable", label: "Timetable" },
   { href: "/admin/members", label: "Members" },
   { href: "/admin/enquiries", label: "Enquiries" },
 ] as const;

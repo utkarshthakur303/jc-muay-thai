@@ -350,37 +350,67 @@ function assertScheduleIsSane(): void {
 assertScheduleIsSane();
 
 /* ---------------------------------------------------------------
-   Derived views. Nothing below is hand-maintained.
+   Derived views, as PURE FUNCTIONS OF A TIMETABLE.
+
+   Every one of these used to close over the module-level `sessions`
+   constant, which was correct while the timetable was a hardcoded array
+   and wrong the moment it moved into the database (2026-08-22): a module
+   constant is computed once per process, so an owner editing the
+   timetable would have seen the schedule update and the weekly chart,
+   the class counts and the "today" summary keep the numbers they had at
+   boot — for as long as that server instance lived.
+
+   Taking the timetable as an argument makes that impossible. It also
+   keeps this file pure and testable, which is why the seed array below
+   is still here: it is the fallback when the table cannot be read, and
+   the fixture the tests run against.
    --------------------------------------------------------------- */
 
-export function sessionsOnDay(day: DayId): Session[] {
-  return sessions
+export function sessionsOnDay(
+  timetable: readonly Session[],
+  day: DayId,
+): Session[] {
+  return timetable
     .filter((session) => session.day === day)
     .sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
 }
 
-export function sessionsForLevel(level: LevelId): Session[] {
-  return sessions.filter((session) => session.level === level);
+export function sessionsForLevel(
+  timetable: readonly Session[],
+  level: LevelId,
+): Session[] {
+  return timetable.filter((session) => session.level === level);
 }
 
 /** Sessions per day, in week order — the weekly class-load chart. */
-export const weeklyLoad: readonly { day: DayId; count: number }[] = DAYS.map(
-  (day) => ({ day, count: sessions.filter((s) => s.day === day).length }),
-);
+export function weeklyLoad(
+  timetable: readonly Session[],
+): readonly { day: DayId; count: number }[] {
+  return DAYS.map((day) => ({
+    day,
+    count: timetable.filter((s) => s.day === day).length,
+  }));
+}
 
-export const totalWeeklySessions = sessions.length;
+export function totalWeeklySessions(timetable: readonly Session[]): number {
+  return timetable.length;
+}
 
-export const busiestDays: readonly DayId[] = (() => {
-  const peak = Math.max(...weeklyLoad.map((entry) => entry.count));
-  return weeklyLoad.filter((entry) => entry.count === peak).map((e) => e.day);
-})();
+export function busiestDays(timetable: readonly Session[]): readonly DayId[] {
+  const load = weeklyLoad(timetable);
+  const peak = Math.max(0, ...load.map((entry) => entry.count));
+  // A timetable with no sessions has no busiest day. Without this the
+  // chart would name every day at once, all tied on zero.
+  if (peak === 0) return [];
+  return load.filter((entry) => entry.count === peak).map((e) => e.day);
+}
 
 /** Shortest and longest run time for a level, e.g. Advanced is 60–90 min. */
-export function durationRangeForLevel(level: LevelId): {
-  min: number;
-  max: number;
-} {
-  const lengths = sessionsForLevel(level).map((session) =>
+export function durationRangeForLevel(
+  timetable: readonly Session[],
+  level: LevelId,
+): { min: number; max: number } {
+  const lengths = sessionsForLevel(timetable, level).map((session) =>
     durationMinutes(session.start, session.end),
   );
   if (lengths.length === 0) return { min: 0, max: 0 };
@@ -393,14 +423,24 @@ export function durationRangeForLevel(level: LevelId): {
  * from the timetable itself, so it is derived rather than restated.
  *
  * The last session by start time is also the last to finish, because
- * assertScheduleIsSane has already ruled out same-day overlaps.
+ * assertScheduleIsSane has already ruled out same-day overlaps — but that
+ * assertion only guards the seed below. A timetable read from the database
+ * has been through the same checks in the editor, and `last` is chosen by
+ * end time here rather than assumed, because a hand-written SQL edit could
+ * always slip past both.
  */
 export function dayWindow(
+  timetable: readonly Session[],
   day: DayId,
 ): { first: Session; last: Session; count: number } | null {
-  const ordered = sessionsOnDay(day);
+  const ordered = sessionsOnDay(timetable, day);
   const first = ordered[0];
-  const last = ordered[ordered.length - 1];
-  if (!first || !last) return null;
+  if (!first) return null;
+
+  let last = first;
+  for (const session of ordered) {
+    if (toMinutes(session.end) > toMinutes(last.end)) last = session;
+  }
+
   return { first, last, count: ordered.length };
 }

@@ -8,6 +8,7 @@ import {
   isDayId,
   type DayId,
 } from "@/content/schedule";
+import type { TimetableEntry } from "@/lib/schedule/queries";
 import { gymNow } from "@/lib/format/gymClock";
 import { formatTime } from "@/lib/format/time";
 import { site } from "@/content/site";
@@ -30,13 +31,13 @@ type Today =
   | { kind: "open"; day: DayId; count: number; first: string; last: string }
   | { kind: "closed" };
 
-function resolveToday(): Today {
+function resolveToday(timetable: readonly TimetableEntry[]): Today {
   const { weekday } = gymNow(site.timeZone);
   if (!isDayId(weekday)) return { kind: "closed" };
 
   // Deliberately not named `window`: shadowing the global inside a module
   // that also calls window.setInterval is a trap waiting to be sprung.
-  const bounds = dayWindow(weekday);
+  const bounds = dayWindow(timetable, weekday);
   if (!bounds) return { kind: "closed" };
 
   return {
@@ -48,19 +49,28 @@ function resolveToday(): Today {
   };
 }
 
-export function TodayAtTheGym() {
+export function TodayAtTheGym({
+  timetable,
+}: {
+  timetable: readonly TimetableEntry[];
+}) {
   const [today, setToday] = useState<Today | null>(null);
 
   useEffect(() => {
-    setToday(resolveToday());
+    setToday(resolveToday(timetable));
 
     // The only moment this line can go stale is midnight in Jersey City,
     // so a minute's granularity is far finer than it needs to be — and it
     // costs one Intl format per tick, which is nothing next to the
     // alternative of being wrong on a page someone left open overnight.
-    const timer = window.setInterval(() => setToday(resolveToday()), 60_000);
+    const timer = window.setInterval(
+      () => setToday(resolveToday(timetable)),
+      60_000,
+    );
     return () => window.clearInterval(timer);
-  }, []);
+    // Re-runs if the timetable changes underneath, which happens when the
+    // owner edits it and the page is revalidated.
+  }, [timetable]);
 
   return (
     <p

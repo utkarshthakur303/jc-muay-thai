@@ -8,6 +8,7 @@ import {
   site,
 } from "@/content/site";
 import { totalWeeklySessions } from "@/content/schedule";
+import type { TimetableEntry } from "@/lib/schedule/queries";
 import { formatRangeCompact, formatTime } from "@/lib/format/time";
 
 /**
@@ -27,7 +28,11 @@ import { formatRangeCompact, formatTime } from "@/lib/format/time";
  * The full street address replaces the bare "Jersey City, NJ" that stood
  * in for it — as plain text, not a map link, at the client's instruction.
  */
-export function ContactDetails() {
+export function ContactDetails({
+  timetable,
+}: {
+  timetable: readonly TimetableEntry[];
+}) {
   return (
     <div className="card-surface card-hover flex flex-col gap-6 p-6 sm:p-8">
       {/*
@@ -124,7 +129,7 @@ export function ContactDetails() {
       <div className="border-t border-divider pt-5">
         <p className="label-mono">Class times</p>
         <p className="mt-1.5 text-sm leading-relaxed text-text-2">
-          {totalWeeklySessions} sessions a week, Monday to Saturday.{" "}
+          {totalWeeklySessions(timetable)} sessions a week, Monday to Saturday.{" "}
           <Link href="#schedule" className="text-accent-strong hover:underline">
             See the full schedule
           </Link>

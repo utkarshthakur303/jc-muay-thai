@@ -7,6 +7,7 @@ import {
   type DayId,
   type LevelId,
 } from "@/content/schedule";
+import type { TimetableEntry } from "@/lib/schedule/queries";
 import { formatRangeCompact } from "@/lib/format/time";
 
 /**
@@ -27,8 +28,14 @@ import { formatRangeCompact } from "@/lib/format/time";
  * and a per-row highlight would put the same promise back in a subtler
  * form. The card responds, the rows do not.
  */
-export function DayCard({ day }: { day: DayId }) {
-  const daySessions = sessionsOnDay(day);
+export function DayCard({
+  day,
+  timetable,
+}: {
+  day: DayId;
+  timetable: readonly TimetableEntry[];
+}) {
+  const daySessions = sessionsOnDay(timetable, day);
 
   // Insertion order follows first appearance in the day, so a card reads
   // top to bottom in the order the classes actually run.

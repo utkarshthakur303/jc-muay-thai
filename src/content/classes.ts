@@ -2,6 +2,7 @@ import {
   durationRangeForLevel,
   sessionsForLevel,
   type LevelId,
+  type Session,
 } from "@/content/schedule";
 
 /**
@@ -107,11 +108,20 @@ export type ClassLevel = ClassLevelContent & {
   readonly duration: { min: number; max: number };
 };
 
-export function getClassLevels(): readonly ClassLevel[] {
+/**
+ * Joined against a timetable rather than the module-level one.
+ *
+ * "10 sessions a week" and "60 min" are read off whatever schedule is
+ * actually in force, so an owner who moves a class sees the class cards
+ * follow in the same edit.
+ */
+export function getClassLevels(
+  timetable: readonly Session[],
+): readonly ClassLevel[] {
   return classLevels.map((level, index) => ({
     ...level,
     number: String(index + 1).padStart(2, "0"),
-    sessionsPerWeek: sessionsForLevel(level.id).length,
-    duration: durationRangeForLevel(level.id),
+    sessionsPerWeek: sessionsForLevel(timetable, level.id).length,
+    duration: durationRangeForLevel(timetable, level.id),
   }));
 }

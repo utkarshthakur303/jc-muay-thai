@@ -35,6 +35,26 @@ export type AdminActionState = {
    * authoritative one the moment there is one.
    */
   finalCents?: number;
+  /**
+   * What an edit to the timetable did to the classes generated from it.
+   *
+   * Carried rather than summarised into `message`, because the important
+   * half is the part that did NOT happen: classes somebody has booked are
+   * left alone, and the owner has to be told which ones so he can ring
+   * them. A timetable edit that silently cancelled four people's Tuesday
+   * would be the worst bug this panel could have.
+   */
+  sync?: {
+    created: number;
+    removed: number;
+    flagged: { id: string; startsAt: string; level: string; bookedCount: number }[];
+    capacityBlocked: {
+      startsAt: string;
+      level: string;
+      bookedCount: number;
+      requested: number;
+    }[];
+  };
 };
 
 export const initialAdminState: AdminActionState = { status: "idle" };

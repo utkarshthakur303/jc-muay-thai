@@ -5,11 +5,12 @@ import {
   totalWeeklySessions,
   weeklyLoad,
 } from "@/content/schedule";
+import type { TimetableEntry } from "@/lib/schedule/queries";
 
 /**
  * Sessions per day across the week.
  *
- * Every number here is counted from the timetable in schedule.ts — the bar
+ * Every number here is counted from the timetable it is handed — the bar
  * heights, the weekly total, and which days are busiest. The mockup
  * carried all three separately: a literal `BAR_DATA` array, a hand-typed
  * "37 classes/wk", and a hardcoded "Busiest: Mon / Wed / Thu". Adding a
@@ -19,8 +20,18 @@ import {
  * A server component with no interactivity, so it ships no JavaScript. The
  * bars animate through CSS alone.
  */
-export function ClassLoadChart() {
-  const peak = Math.max(...weeklyLoad.map((entry) => entry.count));
+export function ClassLoadChart({
+  timetable,
+}: {
+  timetable: readonly TimetableEntry[];
+}) {
+  const load = weeklyLoad(timetable);
+  const total = totalWeeklySessions(timetable);
+  const busiest = busiestDays(timetable);
+  // A timetable with no sessions would divide every bar by zero and
+  // render NaN% heights. Guarded rather than assumed non-empty, because
+  // the owner can now delete his way to an empty week.
+  const peak = Math.max(1, ...load.map((entry) => entry.count));
 
   return (
     <TiltCard className="card-surface card-gradient card-hover flex flex-col justify-center p-5 sm:p-6 lg:col-start-2 lg:col-span-2 lg:row-start-3 lg:p-[clamp(16px,2vw,28px)]">
@@ -30,7 +41,7 @@ export function ClassLoadChart() {
           <p className="font-display text-3xl text-text">WEEKLY CLASS LOAD</p>
         </div>
         <p className="shrink-0 text-right font-display text-4xl text-accent-strong">
-          {totalWeeklySessions}
+          {total}
           <span className="ml-1 font-mono text-sm text-text-2">classes/wk</span>
         </p>
       </div>
@@ -42,7 +53,7 @@ export function ClassLoadChart() {
         same order, without navigating a grid.
       */}
       <ul role="list" className="flex h-[min(20vh,120px)] items-end gap-3.5">
-        {weeklyLoad.map((entry, index) => (
+        {load.map((entry, index) => (
           <li key={entry.day} className="flex h-full flex-1 flex-col items-center gap-1.5">
             <span className="font-mono text-xs font-semibold text-text-2">
               {entry.count}
@@ -70,7 +81,7 @@ export function ClassLoadChart() {
       </ul>
 
       <p className="mt-3 font-mono text-xs text-text-2">
-        Busiest: {busiestDays.map((day) => DAY_LABELS[day]).join(" / ")}
+        Busiest: {busiest.map((day) => DAY_LABELS[day]).join(" / ")}
       </p>
     </TiltCard>
   );

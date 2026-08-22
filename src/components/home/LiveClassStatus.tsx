@@ -10,6 +10,7 @@ import {
   type DayId,
   type Session,
 } from "@/content/schedule";
+import type { TimetableEntry } from "@/lib/schedule/queries";
 import { WEEK, gymNow } from "@/lib/format/gymClock";
 import { formatTime, toMinutes } from "@/lib/format/time";
 import { site } from "@/content/site";
@@ -40,7 +41,7 @@ type Status =
   | { kind: "in-session"; session: Session }
   | { kind: "next"; session: Session; day: DayId; isToday: boolean };
 
-function resolveStatus(): Status | null {
+function resolveStatus(timetable: readonly TimetableEntry[]): Status | null {
   const { weekdayIndex, minutes } = gymNow(site.timeZone);
 
   // Scan today, then forward a full week, so a Saturday evening lands on
@@ -49,7 +50,7 @@ function resolveStatus(): Status | null {
     const dayName = WEEK[(weekdayIndex + offset) % 7];
     if (!dayName || !isDayId(dayName)) continue;
 
-    for (const session of sessionsOnDay(dayName)) {
+    for (const session of sessionsOnDay(timetable, dayName)) {
       if (offset > 0) {
         return { kind: "next", session, day: dayName, isToday: false };
       }
@@ -65,17 +66,26 @@ function resolveStatus(): Status | null {
   return null;
 }
 
-export function LiveClassStatus() {
+export function LiveClassStatus({
+  timetable,
+}: {
+  timetable: readonly TimetableEntry[];
+}) {
   const [status, setStatus] = useState<Status | null>(null);
 
   useEffect(() => {
-    setStatus(resolveStatus());
+    setStatus(resolveStatus(timetable));
     // A minute is the coarsest interval that still flips the label within
     // a minute of a class starting, and it costs one tiny synchronous
     // computation per tick.
-    const timer = window.setInterval(() => setStatus(resolveStatus()), 60_000);
+    const timer = window.setInterval(
+      () => setStatus(resolveStatus(timetable)),
+      60_000,
+    );
     return () => window.clearInterval(timer);
-  }, []);
+    // Re-runs if the timetable itself changes underneath — which happens
+    // when the owner edits it and the page is revalidated.
+  }, [timetable]);
 
   // Reserve the line's height so filling it in after mount cannot shift
   // the card's contents downward.

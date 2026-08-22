@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 
 import { isPlanSlug } from "@/content/plans";
@@ -8,6 +8,8 @@ import { LEVELS, type LevelId } from "@/content/schedule";
 import { notifyCancellation, type NoticeKind } from "@/lib/admin/notify";
 import { finalCents, type DiscountKind } from "@/lib/admin/quote";
 import { parseMoneyToCents } from "@/lib/format/money";
+import { syncOccurrences } from "@/lib/admin/timetable";
+import { TIMETABLE_TAG } from "@/lib/schedule/queries";
 import { createClient, getUser } from "@/lib/supabase/server";
 // Type-only, and it must stay that way: a "use server" module may export
 // nothing but async functions. See lib/admin/state.ts.
@@ -61,6 +63,9 @@ const noteSchema = z
 
 const NOT_ALLOWED =
   "That class can no longer be changed — it has already started, or your session is not an admin one.";
+
+/** Malformed submission — a field missing, or a value the form cannot produce. */
+const INVALID = "Those details could not be read. Please check and try again.";
 
 function messageForCode(code: string | undefined, fallback: string): string {
   switch (code) {
@@ -501,4 +506,195 @@ export async function clearQuote(
 
   revalidatePath(`/admin/members/${parsedUser.data}`);
   return { status: "success", message: "Quote cleared." };
+}
+
+/* ------------------------------------------------------------------
+   THE TIMETABLE
+
+   The weekly pattern, which until 2026-08-22 lived in
+   src/content/schedule.ts and could only be changed by a developer.
+
+   Every one of these ends the same way: write the pattern, then rebuild
+   the dated classes from it, then report what happened to both. The
+   rebuild is the interesting half — see lib/admin/timetable.ts for why
+   it refuses to touch a class somebody has booked.
+   ------------------------------------------------------------------ */
+
+const DAY_VALUES = ["mon", "tue", "wed", "thu", "fri", "sat"] as const;
+
+const sessionSchema = z.object({
+  day: z.enum(DAY_VALUES),
+  level: z.enum(LEVELS),
+  /** 24-hour HH:MM, which is what <input type="time"> submits. */
+  start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid start time"),
+  end: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid end time"),
+  capacity: z.coerce.number().int().min(1).max(200),
+});
+
+function readSession(formData: FormData) {
+  return sessionSchema.safeParse({
+    day: formData.get("day"),
+    level: formData.get("level"),
+    start: formData.get("start"),
+    end: formData.get("end"),
+    capacity: formData.get("capacity"),
+  });
+}
+
+/**
+ * Everything a timetable write has to do after the row itself lands.
+ *
+ * The order matters. `revalidateTag` first, so the rebuild below reads
+ * the pattern it just wrote rather than the cached previous one — get
+ * that backwards and the first edit appears to do nothing and the second
+ * appears to apply the first.
+ */
+async function afterTimetableWrite(): Promise<AdminActionState["sync"]> {
+  /**
+   * `updateTag`, not `revalidateTag`, and the difference is the whole
+   * reason this works. `revalidateTag` marks the cache stale for the NEXT
+   * request; `updateTag` gives read-your-own-writes inside this action.
+   * With the wrong one, `syncOccurrences` below would read the timetable
+   * as it was before the edit — so the first change would appear to do
+   * nothing, and the second would appear to apply the first.
+   */
+  updateTag(TIMETABLE_TAG);
+
+  const report = await syncOccurrences();
+
+  // The public timetable, the booking calendar and the admin views all
+  // read this data. None of them may keep showing last week's schedule.
+  revalidatePath("/");
+  revalidatePath("/book");
+  revalidatePath("/admin/timetable");
+  revalidatePath("/admin/classes");
+
+  return {
+    created: report.created,
+    removed: report.removed,
+    flagged: report.flagged.map((row) => ({ ...row })),
+    capacityBlocked: report.capacityBlocked.map((row) => ({ ...row })),
+  };
+}
+
+function describe(sync: AdminActionState["sync"], verb: string): string {
+  if (!sync) return `${verb}.`;
+  const bits = [`${verb}`];
+  if (sync.created > 0) bits.push(`${sync.created} classes added`);
+  if (sync.removed > 0) bits.push(`${sync.removed} removed`);
+  return `${bits.join(" · ")}.`;
+}
+
+export async function createSession(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const parsed = readSession(formData);
+  if (!parsed.success) {
+    return { status: "error", message: parsed.error.issues[0]?.message ?? INVALID };
+  }
+
+  const { day, level, start, end, capacity } = parsed.data;
+
+  if (start >= end) {
+    return { status: "error", message: "The class has to end after it starts." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("class_sessions").insert({
+    day,
+    level,
+    starts_at: start,
+    ends_at: end,
+    capacity,
+  });
+
+  if (error) {
+    // 23505 is the unique constraint on (day, starts_at, level): two
+    // classes of the same level cannot start at the same minute on the
+    // same day, because booking could not tell them apart.
+    return {
+      status: "error",
+      message:
+        error.code === "23505"
+          ? "There is already a class of that level at that time."
+          : NOT_ALLOWED,
+    };
+  }
+
+  const sync = await afterTimetableWrite();
+  return { status: "success", message: describe(sync, "Class added"), sync };
+}
+
+export async function updateSession(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const id = z.string().uuid().safeParse(formData.get("id"));
+  if (!id.success) return { status: "error", message: INVALID };
+
+  const parsed = readSession(formData);
+  if (!parsed.success) {
+    return { status: "error", message: parsed.error.issues[0]?.message ?? INVALID };
+  }
+
+  const { day, level, start, end, capacity } = parsed.data;
+
+  if (start >= end) {
+    return { status: "error", message: "The class has to end after it starts." };
+  }
+
+  const supabase = await createClient();
+  const { data: updated, error } = await supabase
+    .from("class_sessions")
+    .update({
+      day,
+      level,
+      starts_at: start,
+      ends_at: end,
+      capacity,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id.data)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    return {
+      status: "error",
+      message:
+        error.code === "23505"
+          ? "There is already a class of that level at that time."
+          : NOT_ALLOWED,
+    };
+  }
+
+  // A policy refusal is not an error, it is zero rows changed. Without
+  // reading the row back, a member calling this action would be told it
+  // worked.
+  if (!updated) return { status: "error", message: NOT_ALLOWED };
+
+  const sync = await afterTimetableWrite();
+  return { status: "success", message: describe(sync, "Class updated"), sync };
+}
+
+export async function deleteSession(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const id = z.string().uuid().safeParse(formData.get("id"));
+  if (!id.success) return { status: "error", message: INVALID };
+
+  const supabase = await createClient();
+  const { data: gone, error } = await supabase
+    .from("class_sessions")
+    .delete()
+    .eq("id", id.data)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !gone) return { status: "error", message: NOT_ALLOWED };
+
+  const sync = await afterTimetableWrite();
+  return { status: "success", message: describe(sync, "Class removed"), sync };
 }

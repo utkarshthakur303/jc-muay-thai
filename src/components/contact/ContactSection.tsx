@@ -2,6 +2,7 @@ import { ContactDetails } from "@/components/contact/ContactDetails";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { Section } from "@/components/layout/Section";
 import { trialOffer } from "@/content/site";
+import type { TimetableEntry } from "@/lib/schedule/queries";
 
 /**
  * Contact.
@@ -15,7 +16,11 @@ import { trialOffer } from "@/content/site";
  * a phone user reaches the thing that works without scrolling past the
  * thing that is waiting on the client.
  */
-export function ContactSection() {
+export function ContactSection({
+  timetable,
+}: {
+  timetable: readonly TimetableEntry[];
+}) {
   return (
     <Section
       id="contact"
@@ -34,7 +39,7 @@ export function ContactSection() {
       */}
       <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-[1.2fr_1fr] lg:items-start lg:gap-6">
         <ContactForm />
-        <ContactDetails />
+        <ContactDetails timetable={timetable} />
       </div>
     </Section>
   );

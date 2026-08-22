@@ -4,6 +4,7 @@ import { LiveClassStatus } from "@/components/home/LiveClassStatus";
 import { PromoCard } from "@/components/home/PromoCard";
 import { StatCard } from "@/components/home/StatCard";
 import { site } from "@/content/site";
+import type { TimetableEntry } from "@/lib/schedule/queries";
 
 /**
  * The bento grid.
@@ -25,7 +26,11 @@ import { site } from "@/content/site";
  * So the tiles render at full opacity, in the HTML. The only motion left
  * is inside the chart, where growth carries meaning, and it is pure CSS.
  */
-export function HomeSection() {
+export function HomeSection({
+  timetable,
+}: {
+  timetable: readonly TimetableEntry[];
+}) {
   return (
     <section id="home" aria-label="Introduction">
       <div className="grid grid-cols-1 gap-4 perspective-[1600px] lg:h-[calc(100dvh-152px)] lg:min-h-140 lg:grid-cols-[1.3fr_1fr_1fr] lg:grid-rows-[repeat(3,minmax(150px,1fr))] lg:gap-4.5">
@@ -42,11 +47,11 @@ export function HomeSection() {
           value="2× DAILY"
           className="lg:col-start-3"
         >
-          <LiveClassStatus />
+          <LiveClassStatus timetable={timetable} />
         </StatCard>
 
         <PromoCard />
-        <ClassLoadChart />
+        <ClassLoadChart timetable={timetable} />
       </div>
     </section>
   );

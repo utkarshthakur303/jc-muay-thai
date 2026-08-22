@@ -1,8 +1,9 @@
 import "server-only";
 
-import { capacityFor, sessions, sessionSlug } from "@/content/schedule";
+import { sessionSlug, type Session } from "@/content/schedule";
 import { site } from "@/content/site";
 import { generateOccurrences } from "@/lib/booking/occurrences";
+import { getTimetable } from "@/lib/schedule/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -99,6 +100,30 @@ export async function ensureHorizon(): Promise<
 
   const now = new Date();
 
+  /**
+   * The timetable now comes from the database rather than a module
+   * constant, so it is read per call. Cached under the `timetable` tag,
+   * so in the common case this is not a round trip — and when the owner
+   * edits the pattern, the very next call generates against the new one
+   * without a deploy.
+   */
+  const timetable = await getTimetable();
+  if (timetable.length === 0) {
+    return { ok: false, reason: "the timetable is empty" };
+  }
+
+  /**
+   * Capacity per session, from the row the owner can edit, rather than
+   * the single invented constant it used to be. Looked up by slug so a
+   * session and the classes generated from it cannot disagree about how
+   * many people fit.
+   */
+  const capacityBySlug = new Map(
+    timetable.map((entry) => [sessionSlug(entry), entry.capacity]),
+  );
+  const capacityFor = (session: Session): number =>
+    capacityBySlug.get(sessionSlug(session)) ?? 16;
+
   // Cheap guard first: one indexed row. The common case is that the
   // horizon is already long enough and nothing else happens.
   const { data: furthest, error: readError } = await admin
@@ -153,14 +178,14 @@ export async function ensureHorizon(): Promise<
     // covered — fall through and let the idempotent upsert settle it.
     if (!coverageError && soon) {
       const present = new Set(soon.map((row) => String(row.session_slug)));
-      const missing = sessions.some(
+      const missing = timetable.some(
         (session) => !present.has(sessionSlug(session)),
       );
       if (!missing) return { ok: true, created: 0 };
     }
   }
 
-  const drafts = generateOccurrences(sessions, {
+  const drafts = generateOccurrences(timetable, {
     from: now,
     days: HORIZON_DAYS,
     timeZone: site.timeZone,

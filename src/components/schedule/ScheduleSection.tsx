@@ -3,6 +3,7 @@ import { OpeningHours } from "@/components/schedule/OpeningHours";
 import { DayCard } from "@/components/schedule/DayCard";
 import { TodayAtTheGym } from "@/components/schedule/TodayAtTheGym";
 import { DAYS, totalWeeklySessions } from "@/content/schedule";
+import type { TimetableEntry } from "@/lib/schedule/queries";
 
 /**
  * The full weekly timetable.
@@ -30,15 +31,19 @@ import { DAYS, totalWeeklySessions } from "@/content/schedule";
  * across the whole week — is already covered by the class cards above,
  * each of which lists its own days and times.
  */
-export function ScheduleSection() {
+export function ScheduleSection({
+  timetable,
+}: {
+  timetable: readonly TimetableEntry[];
+}) {
   return (
     <Section
       id="schedule"
       title="SCHEDULE"
-      meta={`${totalWeeklySessions} sessions · Mon–Sat`}
+      meta={`${totalWeeklySessions(timetable)} sessions · Mon–Sat`}
       intro="The same three graded classes run back to back every morning, Monday to Saturday, and again on weekday evenings. Kids' classes run after school and are listed alongside them."
     >
-      <TodayAtTheGym />
+      <TodayAtTheGym timetable={timetable} />
 
       <OpeningHours />
 
@@ -47,7 +52,7 @@ export function ScheduleSection() {
         className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
       >
         {DAYS.map((day) => (
-          <DayCard key={day} day={day} />
+          <DayCard key={day} day={day} timetable={timetable} />
         ))}
       </ul>
 
