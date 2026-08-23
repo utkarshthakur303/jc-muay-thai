@@ -12,7 +12,7 @@ import {
   NoPastCard,
 } from "@/components/booking/PastClassCard";
 import { MembershipCard } from "@/components/plans/MembershipCard";
-import { commitmentBySlug, planBySlug, priceDisplayFor } from "@/content/plans";
+import { commitmentBySlug, priceDisplayFor } from "@/content/plans";
 import { LEVEL_LABELS } from "@/content/schedule";
 import { site } from "@/content/site";
 import { signOut } from "@/lib/auth/actions";
@@ -30,6 +30,7 @@ import {
   relativeDayLabel,
 } from "@/lib/format/classTime";
 import { planBookingAvailable } from "@/lib/plans/autoBook";
+import { getPlanPrices, pricedPlanBySlug, pricedPlans } from "@/lib/plans/prices";
 import { getPlanState } from "@/lib/plans/queries";
 import { getUser } from "@/lib/supabase/server";
 
@@ -123,17 +124,32 @@ export default async function AccountPage() {
    */
   const { name: fullName } = memberDisplayFrom(user);
 
-  const [upcoming, upcomingTotal, past, pastTotal, planState, booksClasses] =
-    await Promise.all([
-      listUpcomingBookings(),
-      countUpcomingBookings(),
-      listPastBookings(),
-      countPastBookings(),
-      getPlanState(),
-      planBookingAvailable(),
-    ]);
+  const [
+    upcoming,
+    upcomingTotal,
+    past,
+    pastTotal,
+    planState,
+    booksClasses,
+    prices,
+  ] = await Promise.all([
+    listUpcomingBookings(),
+    countUpcomingBookings(),
+    listPastBookings(),
+    countPastBookings(),
+    getPlanState(),
+    planBookingAvailable(),
+    /*
+      The rates the owner has set. Read here rather than taken from
+      `content/plans.ts` since 2026-08-23, so a member's own page and
+      the plans page they chose from cannot show different figures.
+    */
+    getPlanPrices(),
+  ]);
 
-  const chosenPlan = planState.slug ? planBySlug(planState.slug) : undefined;
+  const chosenPlan = planState.slug
+    ? pricedPlanBySlug(pricedPlans(prices), planState.slug)
+    : undefined;
   const chosenTerm = planState.commitment
     ? (commitmentBySlug(planState.commitment) ?? null)
     : null;

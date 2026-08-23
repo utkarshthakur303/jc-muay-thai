@@ -7,8 +7,9 @@ import { isPlanSlug } from "@/content/plans";
 import { GALLERY_SLOT, isSlotId, slotById } from "@/content/imageSlots";
 import { LEVELS, type LevelId } from "@/content/schedule";
 import { notifyCancellation, type NoticeKind } from "@/lib/admin/notify";
+import { readPricePair } from "@/lib/admin/priceInput";
 import { finalCents, type DiscountKind } from "@/lib/admin/quote";
-import { parseMoneyToCents } from "@/lib/format/money";
+import { formatMoney, parseMoneyToCents } from "@/lib/format/money";
 import { syncOccurrences } from "@/lib/admin/timetable";
 import {
   moveGalleryPhoto,
@@ -17,6 +18,7 @@ import {
   uploadPhoto,
 } from "@/lib/admin/photos";
 import { IMAGES_TAG } from "@/lib/images/queries";
+import { PLAN_PRICES_TAG } from "@/lib/plans/prices";
 import { TIMETABLE_TAG } from "@/lib/schedule/queries";
 import { createClient, getUser } from "@/lib/supabase/server";
 // Type-only, and it must stay that way: a "use server" module may export
@@ -825,4 +827,198 @@ export async function updateAltAction(
 
   await afterPhotoWrite();
   return { status: "success", message: "Description saved." };
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PLAN PRICES
+
+   The gym's advertised rates. See 20260823180000_plan_prices.sql for
+   what moved into the database and what deliberately did not.
+
+   NOTHING HERE CHARGES ANYBODY, and one consequence is worth stating
+   where it can be read next to the code: changing a price does not
+   touch a single quote. `member_quotes` snapshots its own
+   `price_cents` when the owner agrees a figure with somebody, and no
+   query in this file reads `plan_prices` on that member's behalf. The
+   four people already on Beginners keep the number they were told.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/**
+ * What to say when Postgres refuses a price.
+ *
+ * Its own mapper rather than a case added to `messageForCode`: 23514 is
+ * the cancellation-note length there and the contract-rate invariant
+ * here, and one function answering both would have to guess which.
+ */
+/** PostgREST hands back `unknown`; a price that is not a number is not a price. */
+function asCents(value: unknown): number {
+  return typeof value === "number" && Number.isSafeInteger(value) ? value : 0;
+}
+
+function messageForPriceCode(code: string | undefined): string {
+  switch (code) {
+    case "42501":
+      return "That could not be saved — your session is not an admin one.";
+    case "23514":
+      // plan_prices_contract_not_higher, or one of the sanity rails.
+      // The form checks the same rule first, so arriving here means
+      // something posted past it.
+      return "The contract rate cannot be higher than the monthly rate.";
+    case "PGRST205":
+    case "PGRST204":
+      return "Editable prices are not switched on yet — the pricing migration has not been applied.";
+    default:
+      return "Something went wrong saving that price. Please try again.";
+  }
+}
+
+export async function updatePlanPrice(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const user = await getUser();
+  if (!user) {
+    return { status: "error", message: "Your session has expired. Sign in again." };
+  }
+
+  const slug = formData.get("slug");
+  if (!isPlanSlug(slug)) {
+    // Reachable only by posting past the form, or by the plan list
+    // changing under a page left open.
+    return { status: "error", message: "That plan no longer exists. Reload the page." };
+  }
+
+  const pair = readPricePair(
+    formData.get("price"),
+    formData.get("contractPrice"),
+  );
+  if (!pair.ok) return { status: "error", message: pair.message };
+
+  const supabase = await createClient();
+
+  /**
+   * Read before writing, and it earns its round trip three times over.
+   *
+   * 1. It tells a missing ROW apart from a refused WRITE. Both would
+   *    otherwise come back from the update as zero rows affected, and
+   *    "the migration has not been applied" and "you are not an admin"
+   *    are not a message the owner should have to guess between.
+   * 2. It makes a no-op save honest. The trigger stamps `updated_at` on
+   *    every update, so saving an unchanged form would move "changed 2
+   *    minutes ago" without anything having changed — and that
+   *    timestamp is exactly what gets checked when a member turns up
+   *    quoting a figure from a screenshot.
+   * 3. The old figures go into the confirmation, so the owner reads
+   *    back what actually changed rather than what he typed.
+   */
+  const { data: before, error: readError } = await supabase
+    .from("plan_prices")
+    .select("price_cents,contract_price_cents")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (readError) {
+    return { status: "error", message: messageForPriceCode(readError.code) };
+  }
+  if (!before) {
+    return {
+      status: "error",
+      message:
+        "There is no price row for that plan. Apply the pricing migration's seed and try again.",
+    };
+  }
+
+  const wasPrice = asCents(before.price_cents);
+  const wasContract =
+    typeof before.contract_price_cents === "number"
+      ? before.contract_price_cents
+      : null;
+
+  if (wasPrice === pair.priceCents && wasContract === pair.contractCents) {
+    return {
+      status: "success",
+      message: "No change — that is already the price.",
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("plan_prices")
+    .update({
+      price_cents: pair.priceCents,
+      contract_price_cents: pair.contractCents,
+    })
+    /*
+      `slug` is deliberately absent from the payload. It is not in the
+      column grant either, so sending it would be Postgres refusing the
+      write — correctly. A plan's slug is a LevelId shared with the
+      timetable and is not a thing the pricing form may touch.
+    */
+    .eq("slug", slug)
+    .select("price_cents,contract_price_cents")
+    .maybeSingle();
+
+  if (error) {
+    return { status: "error", message: messageForPriceCode(error.code) };
+  }
+
+  /**
+   * A 200 IS NOT A SUCCESS. PostgREST answers a policy-filtered UPDATE
+   * with 200 and an empty body — the row exists (we just read it) and
+   * the write matched nothing, which leaves exactly one explanation.
+   */
+  if (!data) {
+    return {
+      status: "error",
+      message: "That could not be saved — your session is not an admin one.",
+    };
+  }
+
+  await afterPriceWrite();
+
+  /**
+   * Confirmed with the figures read back off the row, not the ones the
+   * form was holding. If the two ever disagreed, the screen the owner
+   * reads a price off should be showing the database's answer.
+   */
+  const savedPrice = asCents(data.price_cents);
+  const savedContract =
+    typeof data.contract_price_cents === "number" ? data.contract_price_cents : null;
+
+  const parts = [`${formatMoney(wasPrice)} → ${formatMoney(savedPrice)} a month`];
+  if (wasContract !== savedContract) {
+    parts.push(
+      savedContract === null
+        ? "contract rate removed"
+        : `contract rate ${
+            wasContract === null ? "set to" : `${formatMoney(wasContract)} →`
+          } ${formatMoney(savedContract)}`,
+    );
+  }
+
+  return {
+    status: "success",
+    message: `Saved and live. ${parts.join(", ")}.`,
+  };
+}
+
+/**
+ * Everywhere a price is printed.
+ *
+ * `updateTag` rather than `revalidateTag` for the same read-your-own-
+ * writes reason as the photographs: the pricing page re-reads inside
+ * this action and must not show the figure it has just replaced.
+ *
+ * The path list is longer than it looks like it should be because a
+ * price appears on four unrelated screens — the class cards on the home
+ * page, the plan picker, a member's own account page, and the quote box
+ * that seeds from the standard rate. A price that changed on `/` and not
+ * on `/plans` is the half-applied edit that ends in an argument at the
+ * counter.
+ */
+async function afterPriceWrite(): Promise<void> {
+  updateTag(PLAN_PRICES_TAG);
+  revalidatePath("/");
+  revalidatePath("/plans");
+  revalidatePath("/account");
+  revalidatePath("/admin/pricing");
 }

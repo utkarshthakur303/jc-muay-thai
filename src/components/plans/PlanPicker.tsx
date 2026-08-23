@@ -6,7 +6,6 @@ import {
   commitmentBySlug,
   commitments,
   MONTHS_PER_YEAR,
-  plans,
   priceDisplayFor,
   type CommitmentSlug,
   type Plan,
@@ -131,6 +130,7 @@ export function PlanPicker({
   next,
   current,
   currentCommitment,
+  plans,
 }: {
   /** Where to go once a choice is recorded. */
   next: string;
@@ -138,6 +138,16 @@ export function PlanPicker({
   current: PlanSlug | null;
   /** Their existing term, so returning here does not silently drop it. */
   currentCommitment: CommitmentSlug | null;
+  /**
+   * The plans, carrying the prices in force.
+   *
+   * A prop rather than the module constant, since 2026-08-23 when the
+   * gym's rates moved into the database. The page fetches them; this
+   * component compares them. Everything else about a plan — its name,
+   * its tagline, what it includes — is still code and still arrives in
+   * these same objects.
+   */
+  plans: readonly Plan[];
 }) {
   const [state, formAction, pending] = useActionState(
     choosePlan,

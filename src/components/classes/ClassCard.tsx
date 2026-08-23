@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { planBySlug } from "@/content/plans";
+import type { Plan } from "@/content/plans";
 import { formatPrice } from "@/lib/format/money";
 import { formatDurationRange } from "@/lib/format/time";
 import type { ClassLevel } from "@/content/classes";
@@ -23,7 +23,25 @@ import type { ClassLevel } from "@/content/classes";
  * Both are still derived from schedule.ts, so a card cannot claim a run
  * time the timetable does not support.
  */
-export function ClassCard({ level }: { level: ClassLevel }) {
+export function ClassCard({
+  level,
+  plan,
+}: {
+  level: ClassLevel;
+  /**
+   * The plan whose price this card prints, carrying whatever the owner
+   * has set in the panel.
+   *
+   * A prop rather than `planBySlug(level.id)`, since 2026-08-23 when
+   * prices moved into the database. The home page fetches them once and
+   * hands the same objects to every card, which is what stops two cards
+   * on one screen showing figures from either side of an edit.
+   *
+   * Still optional and still checked below: retiring a plan drops a
+   * price line rather than crashing the home page.
+   */
+  plan: Plan | null;
+}) {
   // No min-height. It used to be 420px, which was right when the card also
   // carried a six-row timetable; with that gone the card kept the height
   // and grew a dead band of empty photograph under the text. The grid
@@ -39,10 +57,6 @@ export function ClassCard({ level }: { level: ClassLevel }) {
   // Destructured so the null check below narrows both, rather than
   // needing a non-null assertion at the point of use.
   const { image, imageAlt } = level;
-
-  // A class and a plan are the same vocabulary now — `PlanSlug` is
-  // `LevelId` — so this lookup cannot go stale silently.
-  const plan = planBySlug(level.id) ?? null;
 
   return (
     <li

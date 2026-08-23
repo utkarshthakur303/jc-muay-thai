@@ -7,6 +7,7 @@ import { safeNextPath } from "@/lib/auth/redirects";
 import { countUpcomingBookings } from "@/lib/booking/queries";
 import { planBookingAvailable } from "@/lib/plans/autoBook";
 import { PLAN_BOOKING_DAYS } from "@/lib/plans/planBookings";
+import { getPlanPrices, pricedPlans } from "@/lib/plans/prices";
 import { getPlanState } from "@/lib/plans/queries";
 import { getUser } from "@/lib/supabase/server";
 
@@ -28,13 +29,25 @@ export default async function PlansPage({
    */
   if (!user) redirect("/login?next=/plans");
 
-  const [{ available, slug, commitment }, upcomingCount, booksClasses, params] =
-    await Promise.all([
-      getPlanState(),
-      countUpcomingBookings(),
-      planBookingAvailable(),
-      searchParams,
-    ]);
+  const [
+    { available, slug, commitment },
+    upcomingCount,
+    booksClasses,
+    params,
+    prices,
+  ] = await Promise.all([
+    getPlanState(),
+    countUpcomingBookings(),
+    planBookingAvailable(),
+    searchParams,
+    /*
+      The rates the owner has set, if he has set any. A cookie-free
+      tagged fetch like the timetable's — see lib/plans/prices.ts — so
+      the four cards on this page and the four on the home page are
+      reading the same numbers from the same cache entry.
+    */
+    getPlanPrices(),
+  ]);
 
   /**
    * The table does not exist yet — the migration is applied by hand by the
@@ -114,7 +127,12 @@ export default async function PlansPage({
         "quote only theirs".
       */}
 
-      <PlanPicker next={next} current={slug} currentCommitment={commitment} />
+      <PlanPicker
+        next={next}
+        current={slug}
+        currentCommitment={commitment}
+        plans={pricedPlans(prices)}
+      />
 
       {/*
         No "skip to booking" link here, and that is not an omission. /book

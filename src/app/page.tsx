@@ -6,6 +6,7 @@ import { ScheduleSection } from "@/components/schedule/ScheduleSection";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import { navSections } from "@/content/site";
 import { getSiteImages } from "@/lib/images/queries";
+import { getPlanPrices, pricedPlans } from "@/lib/plans/prices";
 import { getTimetable } from "@/lib/schedule/queries";
 
 /**
@@ -52,16 +53,33 @@ import { getTimetable } from "@/lib/schedule/queries";
  * same solution: a cookie-free tagged fetch, once, with the result
  * passed down as props.
  *
- * `Promise.all` rather than two awaits — they do not depend on each
- * other, and sequencing them would put one round trip in front of the
- * other for no reason on every cold build.
+ * `Promise.all` rather than sequential awaits — none of them depend on
+ * each other, and sequencing them would put one round trip in front of
+ * the other for no reason on every cold build.
+ *
+ * ── AND THE PRICES, ON THE SAME TERMS ───────────────────────────────
+ * Added 2026-08-23, when the gym's advertised rates moved into the
+ * database so the owner can change them from the panel. Every class
+ * card prints one. Third cookie-free tagged fetch, same reasoning as
+ * the two above, and the same regression to watch for in the build
+ * output.
  * ────────────────────────────────────────────────────────────────────
  */
 export default async function HomePage() {
-  const [timetable, images] = await Promise.all([
+  const [timetable, images, prices] = await Promise.all([
     getTimetable(),
     getSiteImages(),
+    getPlanPrices(),
   ]);
+
+  /**
+   * The plans, carrying whatever the owner has set in the panel.
+   *
+   * Resolved once here rather than inside each card, so every price on
+   * this render came from the same read. Two cards showing figures from
+   * either side of an edit would be a bug nobody could reproduce.
+   */
+  const plans = pricedPlans(prices);
 
   /**
    * The nav lists the sections that are actually rendered below.
@@ -78,7 +96,7 @@ export default async function HomePage() {
   return (
     <SiteChrome sections={sections}>
       <HomeSection timetable={timetable} images={images} />
-      <ClassesSection timetable={timetable} images={images} />
+      <ClassesSection timetable={timetable} images={images} plans={plans} />
       <ScheduleSection timetable={timetable} />
       <GallerySection photos={images.gallery} />
       <ContactSection timetable={timetable} />

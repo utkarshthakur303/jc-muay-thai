@@ -6,7 +6,6 @@ import { QuoteForm } from "@/components/admin/QuoteForm";
 import {
   commitmentBySlug,
   MONTHS_PER_YEAR,
-  planBySlug,
   priceFor,
 } from "@/content/plans";
 import { LEVEL_LABELS } from "@/content/schedule";
@@ -14,6 +13,7 @@ import { site } from "@/content/site";
 import { requireAdmin } from "@/lib/admin/guard";
 import { getMemberDetail } from "@/lib/admin/members";
 import { getQuote } from "@/lib/admin/quotes";
+import { getPlanPrices, pricedPlanBySlug, pricedPlans } from "@/lib/plans/prices";
 import {
   formatClassDate,
   formatClassTimeRange,
@@ -42,19 +42,12 @@ export default async function AdminMemberPage({
   if (!detail) notFound();
 
   const { member, bookings } = detail;
-  // `?? null` so there is one absent value rather than two. `planBySlug`
-  // returns undefined for a slug the content file no longer knows, which
-  // means the same thing here as "they never chose one".
-  const plan =
-    member.plan.state === "chosen"
-      ? (planBySlug(member.plan.slug) ?? null)
-      : null;
   const term = member.commitment
     ? (commitmentBySlug(member.commitment) ?? null)
     : null;
   const nowIso = new Date().toISOString();
 
-  const quote = await getQuote(userId);
+  const [quote, prices] = await Promise.all([getQuote(userId), getPlanPrices()]);
 
   /**
    * A quote snapshots the plan it was agreed for, so a member who has
@@ -62,7 +55,26 @@ export default async function AdminMemberPage({
    * Surfaced rather than silently re-labelled: "$300 for Advanced" when it
    * was agreed for Basic is the kind of wrong number that gets read aloud.
    */
-  const quotedPlan = quote ? planBySlug(quote.planSlug) : null;
+  /**
+   * The plans, carrying the rates the owner has set in the panel — so
+   * the figure that prefills the quote box is the one the website is
+   * advertising today, not the one it shipped with.
+   *
+   * Resolved after the fetch rather than before, so both lookups below
+   * come from the same read.
+   */
+  const priced = pricedPlans(prices);
+
+  // `?? null` so there is one absent value rather than two.
+  // `pricedPlanBySlug` returns undefined for a slug the content file no
+  // longer knows, which means the same thing here as "they never chose
+  // one".
+  const plan =
+    member.plan.state === "chosen"
+      ? (pricedPlanBySlug(priced, member.plan.slug) ?? null)
+      : null;
+
+  const quotedPlan = quote ? pricedPlanBySlug(priced, quote.planSlug) : null;
   const quoteIsStale =
     quote !== null && plan !== null && quote.planSlug !== plan.slug;
 

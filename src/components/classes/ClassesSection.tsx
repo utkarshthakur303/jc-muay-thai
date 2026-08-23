@@ -2,6 +2,8 @@ import { ClassCard } from "@/components/classes/ClassCard";
 import { PrimaryCta } from "@/components/layout/PrimaryCta";
 import { Section } from "@/components/layout/Section";
 import { getClassLevels } from "@/content/classes";
+import type { Plan } from "@/content/plans";
+import { pricedPlanBySlug } from "@/lib/plans/priceRows";
 import { totalWeeklySessions } from "@/content/schedule";
 import type { SiteImages } from "@/lib/images/queries";
 import type { TimetableEntry } from "@/lib/schedule/queries";
@@ -29,9 +31,16 @@ import { trialOffer } from "@/content/site";
 export function ClassesSection({
   timetable,
   images,
+  plans,
 }: {
   timetable: readonly TimetableEntry[];
   images: SiteImages;
+  /**
+   * The plans carrying the prices in force, fetched once by the page.
+   * A class and a plan are the same vocabulary — `PlanSlug` is `LevelId`
+   * — so the lookup below cannot go stale silently.
+   */
+  plans: readonly Plan[];
 }) {
   const levels = getClassLevels(timetable, images.slots);
 
@@ -53,7 +62,11 @@ export function ClassesSection({
         className="mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4 lg:gap-6"
       >
         {levels.map((level) => (
-          <ClassCard key={level.id} level={level} />
+          <ClassCard
+            key={level.id}
+            level={level}
+            plan={pricedPlanBySlug(plans, level.id) ?? null}
+          />
         ))}
       </ul>
 

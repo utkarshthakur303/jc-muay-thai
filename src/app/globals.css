@@ -1055,6 +1055,77 @@ html[data-member] .guest-only {
 }
 
 /* ---------------------------------------------------------------
+   ADMIN NAV
+
+   The panel's seven destinations as one row that scrolls, instead of a
+   block that wrapped to four rows and stood 289px tall at 320px. The
+   component carries the reasoning; what belongs here is the two things
+   that are presentation.
+
+   1. NO SCROLLBAR, BUT STILL SCROLLABLE. A horizontal scrollbar under a
+      44px strip is a 15px band of chrome under a row of pills on every
+      desktop that shows them, and on a phone it is drawn over the pills
+      themselves. Hidden in both engines; the strip still scrolls by
+      touch, trackpad, shift-wheel and keyboard.
+
+   2. A FADE AT THE RIGHT EDGE, so a strip with more in it looks like a
+      strip with more in it. The mask is the honest version of the
+      gradient-overlay trick — it fades whatever is behind, in either
+      theme, without a second element painting the header's own colour
+      over the pills.
+
+      Applied only when the row can actually scroll. `animation-timeline:
+      scroll()` is what makes that conditional without JavaScript: a
+      strip with nothing to scroll never advances the timeline, so the
+      fade never appears. Where that is unsupported the fade is simply
+      absent, which is the same thing this looked like yesterday.
+   --------------------------------------------------------------- */
+
+@utility admin-nav {
+  & > ul {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    /* Momentum scrolling on iOS, and it stops the strip fighting the
+       page's own vertical scroll on a diagonal swipe. */
+    overscroll-behavior-x: contain;
+  }
+
+  & > ul::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@supports (animation-timeline: scroll(x)) {
+  @keyframes jc-nav-fade {
+    from {
+      mask-image: linear-gradient(
+        to right,
+        #000 calc(100% - 2.5rem),
+        transparent 100%
+      );
+    }
+    to {
+      mask-image: linear-gradient(to right, #000 100%, #000 100%);
+    }
+  }
+
+  .admin-nav > ul {
+    animation: jc-nav-fade linear both;
+    animation-timeline: scroll(x self);
+    /* The fade is at full strength at the start and gone by the end, so
+       the range is the whole scroll. */
+    animation-range: 0% 100%;
+  }
+}
+
+/*
+  A reduced-motion preference is about movement, not about a static
+  gradient — the fade does not animate anything the eye reads as motion,
+  it only tracks a scroll position the user is already causing. Left in
+  place deliberately.
+*/
+
+/* ---------------------------------------------------------------
    ADMIN WELCOME
 
    A veil over the panel on the first admin page of a browser session:

@@ -1,17 +1,41 @@
 import Link from "next/link";
 
 import { AdminShell } from "@/components/admin/AdminShell";
+import { NextClasses, type NextClass } from "@/components/admin/NextClasses";
+import { LEVEL_LABELS } from "@/content/schedule";
+import { site } from "@/content/site";
+import { listClasses } from "@/lib/admin/classes";
 import { countWaitingEnquiries } from "@/lib/admin/enquiries";
 import { requireAdmin } from "@/lib/admin/guard";
 import { getAdminOverview } from "@/lib/admin/queries";
+import {
+  formatClassDate,
+  formatClassTimeRange,
+  relativeDayLabel,
+} from "@/lib/format/classTime";
 
 /**
  * The panel's front door.
  *
- * Six numbers, no controls. It answers "is anything happening that needs
- * me" and then gets out of the way — a dashboard that tries to be every
- * screen at once is one nobody reads.
+ * Four numbers, then the thing you actually came for.
+ *
+ * Until 2026-08-23 this page was the numbers alone, on the principle
+ * that a dashboard trying to be every screen at once is one nobody
+ * reads. That principle stands and this page still is not a
+ * control panel — but the counts answered a question the owner does not
+ * have. "What is on tonight, and is anybody coming" is the question, and
+ * getting to it meant two more taps through the Classes calendar every
+ * single time.
+ *
+ * So: the counts, then the next few classes as links to their rosters,
+ * then the two things that are instructions rather than statistics —
+ * unanswered enquiries and members with no plan recorded. Nothing here
+ * is a control; everything is a door.
  */
+
+/** Two days. Long enough to cover tonight and tomorrow, short enough to stay a summary. */
+const NEXT_UP_DAYS = 2;
+const NEXT_UP_SHOWN = 6;
 
 function StatTile({
   label,
@@ -42,10 +66,34 @@ function StatTile({
 export default async function AdminOverviewPage() {
   await requireAdmin();
 
-  const [overview, waiting] = await Promise.all([
+  const [overview, waiting, soon] = await Promise.all([
     getAdminOverview(),
     countWaitingEnquiries(),
+    listClasses(NEXT_UP_DAYS),
   ]);
+
+  /**
+   * One `now` for every label on this render.
+   *
+   * `relativeDayLabel` defaults to a fresh `Date` per call, so six calls
+   * across a midnight boundary could label two classes on the same civil
+   * day differently. One instant, passed in, makes that unrepresentable.
+   */
+  const now = new Date();
+
+  const nextUp: NextClass[] = soon.slice(0, NEXT_UP_SHOWN).map((klass) => ({
+    id: klass.id,
+    // Every date formatted here, on the server, in the gym's zone — the
+    // same rule as the class calendar. See NextClasses for why.
+    day:
+      relativeDayLabel(klass.startsAt, site.timeZone, now) ??
+      formatClassDate(klass.startsAt, site.timeZone),
+    time: formatClassTimeRange(klass.startsAt, klass.endsAt, site.timeZone),
+    level: LEVEL_LABELS[klass.level],
+    bookedCount: klass.bookedCount,
+    capacity: klass.capacity,
+    cancelled: klass.cancelled,
+  }));
 
   /**
    * Members who have never been asked which plan they want. Worth calling
@@ -80,6 +128,8 @@ export default async function AdminOverviewPage() {
         />
       </div>
 
+      <NextClasses classes={nextUp} />
+
       {/*
         A link, not a tile, and only when there is something to do.
         Somebody waiting on a reply is the one thing on this page that is
@@ -89,7 +139,7 @@ export default async function AdminOverviewPage() {
       {waiting > 0 ? (
         <Link
           href="/admin/enquiries"
-          className="card-surface mt-8 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 rounded-card border border-accent px-5 py-4 text-sm leading-relaxed transition-colors hover:border-accent-strong"
+          className="card-surface mt-10 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 rounded-card border border-accent px-5 py-4 text-sm leading-relaxed transition-colors hover:border-accent-strong"
         >
           <strong className="font-semibold text-text">
             {waiting} {waiting === 1 ? "message is" : "messages are"} waiting

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminNav, type AdminNavItem } from "@/components/admin/AdminNav";
 import { AdminWelcome } from "@/components/admin/AdminWelcome";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { site } from "@/content/site";
@@ -23,15 +24,31 @@ import { site } from "@/content/site";
  * Grows one entry per phase. Only routes that exist are listed — a nav
  * advertising a page that 404s is worse than a short nav, and every item
  * here is reachable today.
+ *
+ * TWO GROUPS, divided by a rule rather than a heading.
+ *
+ *   What is happening   Overview · Classes · Members · Enquiries
+ *   What the site says  Timetable · Pricing · Photos
+ *
+ * The first four are opened daily or weekly and answer questions about
+ * people; the last three are the website's own content and get touched
+ * when something about the gym changes. Before 2026-08-23 they were
+ * interleaved — Timetable and Photos sat between Classes and Members —
+ * which made a seven-item strip read as one undifferentiated list.
+ *
+ * Order inside each group is by how often it is opened, so the leftmost
+ * pills are the ones reached for most and the strip rarely has to be
+ * scrolled to do the common thing.
  */
-const NAV = [
+const NAV: readonly AdminNavItem[] = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/classes", label: "Classes" },
-  { href: "/admin/timetable", label: "Timetable" },
-  { href: "/admin/photos", label: "Photos" },
   { href: "/admin/members", label: "Members" },
   { href: "/admin/enquiries", label: "Enquiries" },
-] as const;
+  { href: "/admin/timetable", label: "Timetable", startsGroup: true },
+  { href: "/admin/pricing", label: "Pricing" },
+  { href: "/admin/photos", label: "Photos" },
+];
 
 export function AdminShell({
   current,
@@ -55,64 +72,75 @@ export function AdminShell({
     <div className="admin-surface min-h-dvh bg-bg">
       <AdminWelcome />
 
+      {/*
+        TWO ROWS, DELIBERATELY, and the split is what fixed the header.
+
+        Everything used to sit in one `flex-wrap` container: the back
+        link, the badge, the theme control and the seven nav pills. At
+        320px that wrapped to five rows and stood **289px tall** — over a
+        third of a phone screen spent on navigation.
+
+        Measured, before → after:
+
+            320px   289px → 129px
+            360px   237px → 129px
+            390px   237px → 129px
+            768px   133px → 129px
+           1024px   133px → 121px
+           1280px    77px →  69px
+
+        The desktop number is why the split is conditional rather than
+        universal. Below `lg` the nav takes its own scrolling row; at
+        `lg` and above all seven pills fit beside the badge and it goes
+        back to one row, so the width where there was nothing wrong pays
+        nothing for the width where there was.
+      */}
       <header className="border-b border-border bg-card">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 sm:px-8">
-          <Link
-            href="/"
-            className="inline-flex min-h-11 items-center font-mono text-[11px] tracking-widest text-text-2 uppercase transition-colors hover:text-accent-strong"
-          >
-            ← {site.name}
-          </Link>
+        <div className="mx-auto w-full max-w-6xl px-5 py-3 sm:px-8">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Link
+              href="/"
+              className="inline-flex min-h-11 items-center font-mono text-[11px] tracking-widest text-text-2 uppercase transition-colors hover:text-accent-strong"
+            >
+              ← {site.name}
+            </Link>
 
-          {/*
-            Marks the account as an admin surface at a glance. The panel
-            and the member site share a login, so the only thing telling
-            the owner which one he is looking at is the chrome.
-          */}
-          <span className="rounded-full bg-ink px-3 py-1 font-mono text-[10px] tracking-[0.12em] text-chalk uppercase">
-            Admin
-          </span>
+            {/*
+              Marks the account as an admin surface at a glance. The panel
+              and the member site share a login, so the only thing telling
+              the owner which one he is looking at is the chrome.
+            */}
+            <span className="rounded-full bg-ink px-3 py-1 font-mono text-[10px] tracking-[0.12em] text-chalk uppercase">
+              Admin
+            </span>
 
-          {/*
-            Beside the badge rather than at the end of the nav, and the
-            placement was measured rather than chosen. After the nav it
-            cannot share a row with the pills — a <nav> is one flex item
-            whose list wraps inside itself — so it started a fourth row
-            and took the header from 185px to 237px at 320/360/390, on a
-            screen 780px tall. Here it costs nothing at any width.
+            {/*
+              The members' side has had this control in the top bar since
+              the themes shipped; the panel is where the owner spends the
+              longest and was the one surface that could not be switched.
+              Same component, so there is one theme control in the
+              codebase and one storage key behind it.
 
-            The members' side has had this control in the top bar since
-            the themes shipped; the panel is where the owner spends the
-            longest and was the one surface that could not be switched.
-            Same component, so there is one theme control in the codebase
-            and one storage key behind it.
-          */}
-          <ThemeToggle />
+              `ml-auto` now that it shares a row with two short items
+              rather than competing with the nav for space.
+            */}
+            <div className="ml-auto lg:ml-0">
+              <ThemeToggle />
+            </div>
 
-          {NAV.length > 1 ? (
-            <nav aria-label="Admin" className="ml-auto">
-              <ul role="list" className="flex flex-wrap gap-2">
-                {NAV.map((item) => {
-                  const active = item.href === current;
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        aria-current={active ? "page" : undefined}
-                        className={`flex min-h-11 items-center rounded-full border px-4 font-mono text-[11px] tracking-[0.08em] uppercase transition-colors ${
-                          active
-                            ? "border-accent bg-accent text-ink"
-                            : "border-border text-text-2 hover:border-accent hover:text-accent-strong"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
-          ) : null}
+            {/*
+              `w-full` is what puts the strip on its own row: inside a
+              wrapping flex container a full-width child cannot share a
+              line. At `lg` it becomes `w-auto` and `ml-auto`, joins the
+              first row, and the header goes back to being one row —
+              which is where the 77px measurement below comes from.
+            */}
+            {NAV.length > 1 ? (
+              <div className="mt-1 w-full lg:mt-0 lg:ml-auto lg:w-auto">
+                <AdminNav items={NAV} current={current} />
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
 
