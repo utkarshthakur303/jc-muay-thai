@@ -1,64 +1,49 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { useStreak } from "@/components/attendance/StreakProvider";
+import { WeekStrip } from "@/components/attendance/WeekStrip";
 import { Icon } from "@/components/ui/Icon";
-import type { DayState, StreakSummary } from "@/lib/attendance/types";
+import type { StreakSummary } from "@/lib/attendance/types";
 
 /**
  * What is inside the streak popover.
  *
- * The whole thing is one screenful with one obvious action, because it
- * opens over a page somebody was reading and has to be readable, actioned
- * and gone in a couple of seconds.
+ * A PREVIEW NOW, NOT A DESTINATION
+ *
+ * This used to be the whole feature and it opened on a click. It now
+ * appears on hover and the click goes to /streak, at the client's
+ * request — so everything here has to be readable in the second or two a
+ * pointer rests on the flame, with the graphs, the goal and the rules
+ * living on the page behind it.
+ *
+ * The one action stayed. Marking today is the highest-frequency thing a
+ * member does here, and moving it behind a navigation would have turned
+ * the fastest control on the site into two steps to save a card that is
+ * already on screen. Everything else moved.
+ *
+ * The close button went with it. A hover card closes when the pointer
+ * leaves and on Escape; an × inside one is a control whose job is
+ * already done by moving the mouse, and it cost a 44px target's worth of
+ * room in a panel that now has to earn every line.
  *
  * WHY THE BIG NUMBER IS THE STREAK AND NOT THE TOTAL
  *
- * The total only ever goes up, so it stops meaning anything the moment it
- * is large. The streak is the number that can be lost, which is the only
- * reason a streak motivates anyone. Best and total sit underneath in small
- * type — present, because a reset should not feel like everything was
- * erased, but not competing.
+ * The total only ever goes up, so it stops meaning anything the moment
+ * it is large. The streak is the number that can be lost, which is the
+ * only reason a streak motivates anyone. Best and total sit underneath
+ * in small type — present, because a reset should not feel like
+ * everything was erased, but not competing.
  *
  * WHY IT SAYS "SELF-MARKED"
  *
- * Nothing verifies any of this. Saying so in the panel is not a legal
- * disclaimer, it is the difference between a number a member trusts
- * because it is theirs and a number they assume the gym is keeping — the
- * second of which the gym would eventually be asked to correct.
+ * Nothing verifies any of this. Saying so is not a legal disclaimer, it
+ * is the difference between a number a member trusts because it is
+ * theirs and a number they assume the gym is keeping — the second of
+ * which the gym would eventually be asked to correct.
  */
-
-const DOT_STYLES: Record<DayState, string> = {
-  // Filled and branded — the only state that should catch the eye.
-  attended: "border-accent bg-accent text-ink",
-  // An open day that went by. Visible as an outline, not shouted about:
-  // this panel is meant to pull somebody back in, not tell them off.
-  missed: "border-border text-text-3",
-  // The gym was shut. Drawn faintest of all so it cannot read as a miss.
-  closed: "border-transparent text-text-3",
-  // Today, still winnable. A ring rather than a fill, because it is an
-  // invitation and not an achievement.
-  today: "border-accent text-accent-strong ring-2 ring-accent/30",
-  future: "border-divider text-text-3",
-};
-
-/**
- * Read out after the day name — "Wednesday, trained".
- *
- * `missed` was "no session", which is what `closed` means. Spoken aloud,
- * "Monday, no session" tells a member the gym was shut on a day it was
- * open and they simply did not mark it. These two states are the ones a
- * streak turns on, so conflating them in the only channel a screen-reader
- * user has is not a wording nitpick.
- */
-const DAY_STATE_WORDS: Record<DayState, string> = {
-  attended: "trained",
-  missed: "not marked",
-  closed: "gym closed",
-  today: "today, not yet marked",
-  future: "still to come",
-};
 
 /**
  * Eight rays fired from behind the flame when a day is marked.
@@ -103,7 +88,36 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function StreakPanel({ onClose }: { onClose: () => void }) {
+/**
+ * The way out, and the way in. Rendered by EVERY branch of this panel,
+ * including the ones that have nothing else to say.
+ *
+ * On a pointer it is close to redundant — the flame itself is the link.
+ * It earns its place twice over anyway:
+ *
+ * It is the only route for anyone who arrived by keyboard. They reach the
+ * panel by tabbing off a trigger they cannot "click through" without
+ * leaving, so without a focusable target inside, Tab walks straight past
+ * the panel and out the other side, taking the panel with it. Measured in
+ * a browser, not reasoned about: with the link missing from the
+ * signed-out branch, focus left the control and the panel closed behind
+ * it every time.
+ *
+ * And it says out loud what the hover card is a preview OF, which a flame
+ * with a number on it does not.
+ */
+function FullPage() {
+  return (
+    <Link
+      href="/streak"
+      className="mt-4 flex min-h-11 items-center font-mono text-[11px] tracking-[0.08em] text-text-2 uppercase underline underline-offset-4 transition-colors hover:text-accent-strong"
+    >
+      Graphs, goals and the rules →
+    </Link>
+  );
+}
+
+export function StreakPanel() {
   const streak = useStreak();
   const [burstId, setBurstId] = useState(0);
   const previous = useRef<StreakSummary | null>(null);
@@ -132,6 +146,7 @@ export function StreakPanel({ onClose }: { onClose: () => void }) {
         <p className="font-mono text-[11px] tracking-[0.12em] text-text-3 uppercase">
           Loading your streak…
         </p>
+        <FullPage />
       </div>
     );
   }
@@ -144,6 +159,7 @@ export function StreakPanel({ onClose }: { onClose: () => void }) {
             ? "Couldn't load your streak. Please try again."
             : "Sign in to track your training."}
         </p>
+        <FullPage />
       </div>
     );
   }
@@ -153,87 +169,44 @@ export function StreakPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            className={`relative flex size-11 shrink-0 items-center justify-center rounded-full ${
-              current > 0
-                ? "bg-accent/12 text-accent-strong"
-                : "bg-border/40 text-text-3"
-            }`}
-          >
-            {/* Alive and burning, or cold. The flicker is the only
-                always-on motion in the panel and it is deliberately
-                small — it should register at the edge of vision, not
-                pull the eye off the number beside it. */}
-            <Icon
-              name="flame"
-              size={22}
-              className={current > 0 ? "flame-alive" : undefined}
-            />
-            {burstId > 0 ? <Burst id={burstId} /> : null}
-          </span>
-
-          <div>
-            <p
-              // Keyed on the value so the number re-mounts and replays its
-              // pop each time it changes.
-              key={current}
-              className="streak-pop font-display text-[2.75rem] leading-[0.85] text-text"
-            >
-              {current}
-            </p>
-            <p className="mt-1 font-mono text-[10px] tracking-[0.14em] text-text-2 uppercase">
-              {current === 1 ? "day in a row" : "days in a row"}
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="-mt-1 -mr-1 flex size-11 shrink-0 items-center justify-center rounded-full text-lg leading-none text-text-3 transition-colors hover:bg-border/40 hover:text-text"
+      <div className="flex items-center gap-3">
+        <span
+          className={`relative flex size-11 shrink-0 items-center justify-center rounded-full ${
+            current > 0
+              ? "bg-accent/12 text-accent-strong"
+              : "bg-border/40 text-text-3"
+          }`}
         >
-          <span aria-hidden>×</span>
-        </button>
+          {/* Alive and burning, or cold. The flicker is the only
+              always-on motion in the panel and it is deliberately
+              small — it should register at the edge of vision, not
+              pull the eye off the number beside it. */}
+          <Icon
+            name="flame"
+            size={22}
+            className={current > 0 ? "flame-alive" : undefined}
+          />
+          {burstId > 0 ? <Burst id={burstId} /> : null}
+        </span>
+
+        <div>
+          <p
+            // Keyed on the value so the number re-mounts and replays its
+            // pop each time it changes.
+            key={current}
+            className="streak-pop font-display text-[2.75rem] leading-[0.85] text-text"
+          >
+            {current}
+          </p>
+          <p className="mt-1 font-mono text-[10px] tracking-[0.14em] text-text-2 uppercase">
+            {current === 1 ? "day in a row" : "days in a row"}
+          </p>
+        </div>
       </div>
 
-      {/*
-        The week, as seven dots. A list rather than a row of divs so a
-        screen reader can walk it, and each dot carries its own day and
-        state in the accessible name — "Wednesday, trained" — because a
-        filled circle says nothing out loud.
-      */}
-      <ul
-        role="list"
-        aria-label="This week"
-        className="mt-5 flex items-center justify-between gap-1"
-      >
-        {week.map((day) => (
-          <li
-            key={day.key}
-            className="flex flex-1 flex-col items-center gap-1.5"
-          >
-            <span
-              className={`flex size-8 items-center justify-center rounded-full border font-mono text-[11px] transition-colors ${
-                DOT_STYLES[day.state]
-              } ${day.state === "attended" ? "dot-in" : ""}`}
-            >
-              <span aria-hidden>
-                {day.state === "attended"
-                  ? "✓"
-                  : day.state === "closed"
-                    ? "–"
-                    : day.initial}
-              </span>
-              <span className="sr-only">
-                {day.label}, {DAY_STATE_WORDS[day.state]}
-              </span>
-            </span>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-5">
+        <WeekStrip week={week} />
+      </div>
 
       {/*
         The action. One button, two states, and the label says what will
@@ -296,6 +269,8 @@ export function StreakPanel({ onClose }: { onClose: () => void }) {
           ? "The gym is closed today, so today can't break your streak — mark it anyway if you trained."
           : "Self-marked. Miss an open day and the streak starts again."}
       </p>
+
+      <FullPage />
 
       {/*
         The milestone. Rendered inside the panel rather than as a

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { StreakPanel } from "@/components/attendance/StreakPanel";
 import { useStreak } from "@/components/attendance/StreakProvider";
@@ -15,32 +16,61 @@ import { useDismissable } from "@/lib/ui/useDismissable";
  * it and never sees it disappear — no flash of a control they cannot use,
  * no session read during render, and the home page keeps its static cache.
  *
- * WHY IT IS NOT IN THE MOBILE BOTTOM BAR
+ * A LINK THAT PREVIEWS ITSELF
  *
- * That was the first attempt and it broke the bar. Six items already
- * divided a 288px strip on a 320px phone, at roughly 48px each, and the
- * file's own comment records that labels longer than five characters were
- * truncated the last time something took width from them. A seventh item
- * did exactly that again: measured at 320px and 360px, CLASSES and CONTACT
- * were both clipped.
+ * It was a button that opened a panel. At the client's request it is now
+ * a link to /streak that shows the panel on hover, which changes what
+ * every part of it has to do:
  *
- * So on phones it lives in the top bar instead, beside the account chip —
- * which is where member state already is, and the only surface with room.
- * Desktop keeps it in the rail, as asked.
+ * - The click navigates. It no longer toggles anything, so `aria-expanded`
+ *   was removed rather than left pointing at a panel the link does not
+ *   control. Announcing a toggle that navigates is worse than announcing
+ *   nothing.
+ * - Hover opens after 120ms and closes after 220ms. The open delay is
+ *   what stops the panel firing at every pointer that crosses the rail on
+ *   its way somewhere else; the close delay is what lets the pointer
+ *   travel the 12px gap into the panel without it vanishing on the way —
+ *   WCAG 1.4.13 requires hover content to be hoverable, and a panel with
+ *   a live button in it that cannot be reached is worse than no panel.
+ * - Focus opens it immediately, and focus leaving the whole control
+ *   closes it. A keyboard user gets the same preview, and can tab
+ *   straight from the flame into the panel because the panel is the next
+ *   thing in the DOM.
+ * - Escape closes it, which is the third of 1.4.13's requirements.
  *
- * A DISCLOSURE, NOT A DIALOG
+ * TOUCH GETS NO PANEL, DELIBERATELY
  *
- * No focus trap, no inert background, no scroll lock. Nothing here demands
- * a decision — a member can open it, read the number and carry on
- * scrolling. Making it modal would mean trapping somebody inside a
- * motivational widget, which is the sort of thing people uninstall apps
- * over.
+ * `pointerType` is checked on every enter and leave, so a tap opens
+ * nothing and the navigation happens cleanly. Phones and tablets emulate
+ * mouse events on tap; without that check the panel would flash open for
+ * the instant before the page changed underneath it.
+ *
+ * Nothing is lost by it. The panel is a preview of /streak and the tap
+ * goes to /streak, so a touch member reaches the same content — more of
+ * it — in the same one action. The cost is that marking today from a
+ * phone is now a tap and then a tap, where it used to be a tap and a tap
+ * on a panel. That is the shape the client asked for.
  */
 
 type Placement = "rail" | "bar";
 
+/** Long enough to ignore a pointer passing through, short enough to feel
+ *  like the panel was already there. */
+const OPEN_DELAY = 120;
+
 /**
- * The panel is positioned against the *nav*, not against the button.
+ * The grace period after the pointer leaves.
+ *
+ * It is not the mechanism that lets somebody reach the panel — the bridge
+ * below is — but a panel that vanished the instant the pointer twitched
+ * off the flame would still feel broken. Measured: at 220ms a deliberate,
+ * slow drag across the gap lost the panel; the bridge fixed that outright,
+ * and this is the margin on top.
+ */
+const CLOSE_DELAY = 300;
+
+/**
+ * The panel is positioned against the *nav*, not against the trigger.
  *
  * On the bar that is the whole point: anchoring to the button put a 320px
  * panel's right edge on a 48px trigger, which pushed its left edge six
@@ -48,23 +78,21 @@ type Placement = "rail" | "bar";
  * lets `absolute` resolve against the fixed header instead, so the panel
  * spans the bar exactly and cannot overflow at any width.
  *
- * The rail now works the same way, and the move up the rail is what forced
+ * The rail works the same way, and the move up the rail is what forced
  * it. The panel used to hang off the button, which was safe while the
  * button sat at the foot of the rail with the whole rail above it to grow
  * into. Under Contact there is exactly 452px above it, and the panel's
- * tallest state — a milestone showing, above the "marked for today" box,
- * which is taller than the plain button it replaces — measures around 455.
- * It would have clipped by a few pixels, in the one state the whole
- * feature exists to celebrate.
+ * tallest state measures around 455. It would have clipped by a few
+ * pixels, in the one state the whole feature exists to celebrate.
  *
- * Anchored to the nav with `max-h-full` there is no arithmetic left to get
- * wrong: the panel cannot be taller than the rail and cannot start above
- * it, at any viewport height, whatever is later added to its contents.
+ * Anchored to the nav with `max-h-full` there is no arithmetic left to
+ * get wrong: the panel cannot be taller than the rail and cannot start
+ * above it, at any viewport height, whatever is later added to it.
  */
 const WRAPPER: Record<Placement, string> = {
-  // `shrink-0` because the rail is a flex column that can run out of height:
-  // without it this is squashed before the section list scrolls, and a
-  // 52px control compressed to 30px loses its label first.
+  // `shrink-0` because the rail is a flex column that can run out of
+  // height: without it this is squashed before the section list scrolls,
+  // and a 52px control compressed to 30px loses its label first.
   //
   // `mt-1.5` matches the 6px gap the section list uses between its items,
   // so this reads as the next item down rather than as something stuck to
@@ -74,18 +102,56 @@ const WRAPPER: Record<Placement, string> = {
 };
 
 /**
- * Both resolve against their nav, and both are bounded by it.
+ * The positioned wrapper. It carries the 12px offset as PADDING, not as a
+ * margin, and that is the whole trick.
  *
- * `bottom-0` on the rail keeps the upward-and-rightward growth the panel
- * has always had, now measured from the rail's foot rather than the
- * button's — which puts the trigger alongside the panel's top edge, still
- * visibly the thing that opened it. `max-h-full` plus an internal scroll is
- * the part that cannot be broken by a future addition to the panel's
- * contents.
+ * With a margin, the gap between the flame and the card belongs to
+ * nobody: a pointer crossing it is over neither element, `pointerleave`
+ * fires, and a slow enough hand loses the panel before reaching it —
+ * measured, not theorised. WCAG 1.4.13 requires hover content to be
+ * hoverable, so this is a failure and not a nicety.
+ *
+ * As padding the gap belongs to the wrapper, which is inside the hover
+ * container, so the path from trigger to card is continuous. The card
+ * keeps its visual separation because padding is invisible.
+ *
+ * `inset-y-0` on the rail gives the wrapper a definite height, which is
+ * what lets the card's own `max-h-full` resolve against the rail rather
+ * than against `auto` — the card cannot be taller than the rail at any
+ * viewport height, whatever is later added to its contents. `justify-end`
+ * keeps it growing upward from the rail's foot, alongside the trigger.
  */
 const PANEL: Record<Placement, string> = {
-  rail: "bottom-0 left-full ml-3 max-h-full w-80 origin-bottom-left overflow-y-auto",
-  bar: "inset-x-0 top-full mt-3 origin-top",
+  // w-80 (320px) card + pl-3 (12px) bridge. Written out because Tailwind
+  // has no token for "one plus the other".
+  rail: "inset-y-0 left-full flex w-[20.75rem] flex-col justify-end",
+  bar: "inset-x-0 top-full",
+};
+
+/**
+ * The bridge, and the scroll container.
+ *
+ * `pointer-events-auto` re-enables what the wrapper turned off. The
+ * wrapper spans the whole rail so the card's `max-h-full` has something
+ * definite to resolve against — 332 by 852 pixels of it — and an
+ * invisible div that size swallows every click on the content beside the
+ * rail for as long as the panel is open. Turning events off on the
+ * wrapper and back on here makes the live area exactly the card plus its
+ * bridge, which is the only part anybody needs to reach.
+ *
+ * The scroll lives here rather than on the card so that `max-h-full`
+ * resolves against the wrapper's definite height instead of against an
+ * `auto` one, where a percentage max-height means nothing at all.
+ */
+const INNER: Record<Placement, string> = {
+  rail: "pointer-events-auto max-h-full overflow-y-auto pl-3",
+  bar: "pointer-events-auto pt-3",
+};
+
+/** How the card itself is drawn, once the wrapper has placed it. */
+const CARD: Record<Placement, string> = {
+  rail: "origin-bottom-left",
+  bar: "origin-top",
 };
 
 /**
@@ -100,7 +166,7 @@ const PANEL: Record<Placement, string> = {
  * classes setting the same property is a coin toss you lose silently.
  *
  * The rail's own nav items have always used mutually exclusive branches
- * for exactly this reason. This now matches them.
+ * for exactly this reason. This matches them.
  */
 const TRIGGER: Record<Placement, string> = {
   rail: "flex w-16 flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-2",
@@ -111,11 +177,20 @@ const SKIN: Record<Placement, { idle: string; open: string }> = {
   // On the accent-filled rail, drawn in ink like everything else on it.
   //
   // The open state is white on ink, following the nav items directly
-  // above it. This control is not a nav destination, but it wears the
-  // same pill in the same column, and leaving it accent-on-ink while its
-  // five neighbours went white would have read as the one item that was
-  // missed rather than as a deliberate distinction.
+  // above it. This control is not a nav destination — it is now, in fact,
+  // exactly that — and it wears the same pill in the same column, so
+  // leaving it accent-on-ink while its five neighbours went white would
+  // have read as the one item that was missed.
   rail: {
+    // The hover classes live only on the idle branch, never appended to
+    // the open one. That is the whole point of the split: two utilities
+    // setting the same property is a coin toss Tailwind decides by
+    // variant order, not by string order.
+    //
+    // They still earn their place now that hover also opens the panel.
+    // The panel waits 120ms; without these the trigger would sit
+    // completely inert under the pointer for that eighth of a second,
+    // which is exactly long enough to read as "nothing here".
     idle: "text-ink/85 hover:bg-ink/10 hover:text-ink",
     open: "bg-ink text-chalk",
   },
@@ -130,11 +205,49 @@ const SKIN: Record<Placement, { idle: string; open: string }> = {
 export function StreakButton({ placement }: { placement: Placement }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLAnchorElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streak = useStreak();
 
-  const close = useCallback(() => setOpen(false), []);
-  useDismissable({ open, onDismiss: close, containerRef, triggerRef });
+  const clearTimer = () => {
+    if (timer.current === null) return;
+    clearTimeout(timer.current);
+    timer.current = null;
+  };
+
+  const schedule = useCallback((next: boolean, delay: number) => {
+    clearTimer();
+    timer.current = setTimeout(() => setOpen(next), delay);
+  }, []);
+
+  /**
+   * Set by Escape, and only by Escape.
+   *
+   * useDismissable returns focus to the trigger after dismissing — which
+   * is right, and which fires `onFocus` on this container, which reopened
+   * the panel a frame after Escape closed it. Measured in a browser: the
+   * panel visibly refused to close. The flag makes the refocus a no-op,
+   * and is cleared the moment focus or the pointer genuinely leaves, so
+   * a member who dismisses and then comes back gets the preview again.
+   */
+  const dismissed = useRef(false);
+
+  const closeNow = useCallback(() => {
+    clearTimer();
+    setOpen(false);
+  }, []);
+
+  const dismiss = useCallback(() => {
+    dismissed.current = true;
+    closeNow();
+  }, [closeNow]);
+
+  // A pending timer firing after the trigger has gone — a member signing
+  // out with the pointer over the flame — would set state on an unmounted
+  // tree. Cheap to prevent, invisible when it goes wrong.
+  useEffect(() => clearTimer, []);
+
+  useDismissable({ open, onDismiss: dismiss, containerRef, triggerRef });
 
   const current = streak?.summary?.current ?? null;
   const markedToday = streak?.summary?.markedToday ?? false;
@@ -143,23 +256,51 @@ export function StreakButton({ placement }: { placement: Placement }) {
    * The label carries the whole state, because the visible content is a
    * flame and a digit. "Training streak, 4 days, not yet marked today" is
    * what a screen reader user needs; "4" is what everyone else needs.
+   *
+   * It ends with what the link does. The panel is a hover preview a
+   * screen-reader user may never see, so without this the flame is a link
+   * whose destination is a number.
    */
   const label =
     current === null
-      ? "Training streak"
-      : `Training streak, ${current} ${current === 1 ? "day" : "days"}${
+      ? "Your training streak"
+      : `Your training streak, ${current} ${current === 1 ? "day" : "days"}${
           markedToday ? ", marked for today" : ", not yet marked today"
         }`;
 
   return (
-    <div ref={containerRef} className={WRAPPER[placement]}>
-      <button
+    <div
+      ref={containerRef}
+      className={WRAPPER[placement]}
+      // Mouse only. See the header: a tap emulates these, and the panel
+      // would flash open for the instant before the page navigated.
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "mouse") return;
+        dismissed.current = false;
+        schedule(true, OPEN_DELAY);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "mouse") return;
+        schedule(false, CLOSE_DELAY);
+      }}
+      // React's onFocus/onBlur are focusin/focusout — they fire for
+      // descendants too, which is what keeps the panel open while focus
+      // is inside it.
+      onFocus={() => {
+        if (dismissed.current) return;
+        clearTimer();
+        setOpen(true);
+      }}
+      onBlur={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget)) return;
+        dismissed.current = false;
+        closeNow();
+      }}
+    >
+      <Link
         ref={triggerRef}
-        type="button"
-        aria-expanded={open}
-        aria-controls="streak-panel"
-        aria-label={label}
-        onClick={() => setOpen((value) => !value)}
+        href="/streak"
+        aria-label={`${label}. Opens your streak page.`}
         className={`${TRIGGER[placement]} transition-colors ${
           open ? SKIN[placement].open : SKIN[placement].idle
         }`}
@@ -174,7 +315,8 @@ export function StreakButton({ placement }: { placement: Placement }) {
             fine once you know what it is. It reads as an unexplained
             number the first time — and it now sits directly beneath five
             labelled items, where the only unlabelled thing in a column of
-            labels is the one nobody presses.
+            labels is the one nobody presses. It is also a destination
+            itself now, which settles the argument.
 
             So the value and the icon share the top row and the label goes
             underneath, which puts the item at the same 52px height as its
@@ -218,14 +360,22 @@ export function StreakButton({ placement }: { placement: Placement }) {
             </span>
           </>
         )}
-      </button>
+      </Link>
 
       {open ? (
         <div
           id="streak-panel"
-          className={`pop-in absolute z-50 rounded-card border border-border bg-card shadow-float ${PANEL[placement]}`}
+          role="group"
+          aria-label="Streak summary"
+          className={`pointer-events-none absolute z-50 ${PANEL[placement]}`}
         >
-          <StreakPanel onClose={close} />
+          <div className={INNER[placement]}>
+            <div
+              className={`pop-in rounded-card border border-border bg-card shadow-float ${CARD[placement]}`}
+            >
+              <StreakPanel />
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

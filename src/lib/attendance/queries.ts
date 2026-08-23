@@ -1,6 +1,12 @@
 import "server-only";
 
 import { site } from "@/content/site";
+import {
+  heatmapRows,
+  weeklyBars,
+  type HeatRow,
+  type WeekBar,
+} from "@/lib/attendance/history";
 import { summarise } from "@/lib/attendance/streak";
 import type { StreakSummary } from "@/lib/attendance/types";
 import { gymCivilDate } from "@/lib/format/gymClock";
@@ -89,4 +95,102 @@ export async function getStreakSummary(
   // Vercel, so `new Date()` alone would roll the streak over at 8pm
   // Eastern — an hour when people are still in class.
   return summarise(dates, gymCivilDate(new Date(), site.timeZone), justMarked);
+}
+
+/**
+ * The member's own streak target, and whether the feature exists yet.
+ *
+ * `available` is the migration window made visible. This code ships
+ * before the client pastes 20260823160000_streak_goals.sql into the SQL
+ * editor, and in the interval `member_goals` does not exist — PostgREST
+ * answers PGRST205 from its schema cache. The page still works: it falls
+ * back to the app's own milestones, which is what a member with no goal
+ * sees anyway, and it hides the form rather than offering a control that
+ * cannot save.
+ *
+ * ANY error fails shut, not just the one that means "no table". A
+ * transient failure would otherwise render a form whose submit button
+ * throws, and offering a control we cannot prove works is precisely the
+ * kind of half-built thing the client ruled out. The cost of failing shut
+ * is that a member briefly cannot change a goal; the cost of failing open
+ * is a member who thinks they set one.
+ */
+export type StreakGoalState = {
+  readonly available: boolean;
+  /** Null means no goal set — which is a real answer, not a failure. */
+  readonly goal: number | null;
+};
+
+const GOAL_UNAVAILABLE: StreakGoalState = { available: false, goal: null };
+
+export async function getStreakGoal(): Promise<StreakGoalState> {
+  const user = await getUser();
+  if (!user) return GOAL_UNAVAILABLE;
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("member_goals")
+    .select("streak_goal")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) return GOAL_UNAVAILABLE;
+
+  const raw: unknown = data?.streak_goal;
+
+  /**
+   * Validated on the way out as well as on the way in. The CHECK
+   * constraint is the guarantee, but this file is what runs if a row ever
+   * arrives from somewhere else — a manual fix in the SQL editor, a
+   * restore from before the constraint. A goal of 0 would divide the
+   * progress bar by zero; a goal of 1e9 would draw a bar that never
+   * visibly moves. Neither is worth trusting a remote row for.
+   */
+  const goal =
+    typeof raw === "number" && Number.isSafeInteger(raw) && raw > 0
+      ? raw
+      : null;
+
+  return { available: true, goal };
+}
+
+/**
+ * Everything the streak page draws, from one read of the attendance table.
+ *
+ * The graphs are computed from the same date list the summary is, rather
+ * than from three separate queries. Three queries could disagree with
+ * each other — a check-in landing between them would show a streak of 5
+ * above a chart containing 4 marks — and there is no version of that a
+ * member reads as anything but broken.
+ *
+ * Throws on a read failure, like listAttendanceDates and for the same
+ * reason: an empty list is indistinguishable from "never trained", so
+ * swallowing the error would tell somebody with a thirty-day streak that
+ * they have never been. The page catches it and says so.
+ */
+export type StreakPage = {
+  readonly summary: StreakSummary;
+  readonly goal: StreakGoalState;
+  readonly bars: readonly WeekBar[];
+  readonly rows: readonly HeatRow[];
+};
+
+export async function getStreakPage(): Promise<StreakPage | null> {
+  const user = await getUser();
+  if (!user) return null;
+
+  const [dates, goal] = await Promise.all([
+    listAttendanceDates(),
+    getStreakGoal(),
+  ]);
+
+  const today = gymCivilDate(new Date(), site.timeZone);
+
+  return {
+    summary: summarise(dates, today),
+    goal,
+    bars: weeklyBars(dates, today),
+    rows: heatmapRows(dates, today),
+  };
 }
