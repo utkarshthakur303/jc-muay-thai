@@ -1,4 +1,4 @@
-import { Anton, IBM_Plex_Mono, Manrope } from "next/font/google";
+import { Anton, IBM_Plex_Mono, Manrope, Michroma } from "next/font/google";
 
 /**
  * Single source of truth for typefaces.
@@ -49,6 +49,47 @@ const display = Anton({
   adjustFontFallback: true,
 });
 
+/**
+ * Michroma, standing in for Good Times.
+ *
+ * The client asked for Good Times across the hero. It cannot ship:
+ * Typodermic sell it as a desktop licence, it is not on Google Fonts,
+ * and it carries no webfont embedding rights — so putting it in a
+ * @font-face would be redistributing somebody's commercial typeface from
+ * our own origin. They then asked for the closest free substitute.
+ *
+ * Michroma is that. It is the same idea drawn by somebody else: wide,
+ * square-shouldered, geometric, monoline, built for uppercase — the
+ * 1970s American car-badge shape Good Times is itself derived from. The
+ * proportions are the part that carries; a reader who knows Good Times
+ * sees the same wide square wordmark.
+ *
+ * WHERE IT DIFFERS, SO NOBODY IS SURPRISED
+ *
+ * Weight. Michroma ships one, roughly regular. Good Times is usually set
+ * bold, and Anton — the face this replaces in the hero — is effectively
+ * black. The hero therefore reads lighter and wider than it did, which
+ * is a real change in the site's voice and not a rounding error.
+ *
+ * If more punch is wanted, Orbitron is the one-line swap: the same wide
+ * square genre with weights to 900, at the cost of more overtly sci-fi
+ * letterforms. That change is this line and nothing else, which is the
+ * whole point of this file.
+ *
+ * Scoped to the hero on purpose. Every other heading on the site stays
+ * Anton, so this is a deliberate accent on the first screen rather than
+ * a second display face competing with the first everywhere.
+ */
+const hero = Michroma({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-hero-src",
+  display: "swap",
+  // Set very large over a photograph, where a metric mismatch with the
+  // fallback is at its most visible. Let next/font compute the adjust.
+  adjustFontFallback: true,
+});
+
 const body = Manrope({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
@@ -64,4 +105,4 @@ const mono = IBM_Plex_Mono({
 });
 
 /** Applied once, to <html>. Every font variable enters the cascade here. */
-export const fontVariables = `${display.variable} ${body.variable} ${mono.variable}`;
+export const fontVariables = `${display.variable} ${hero.variable} ${body.variable} ${mono.variable}`;

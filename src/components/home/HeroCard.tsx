@@ -78,11 +78,45 @@ export function HeroCard({ image }: { image: SiteImage | null }) {
           type cannot outgrow the box it is in, at any width, including
           ones no one has tested.
         */}
-        <h1 className="mt-3.5 font-display text-[clamp(3.25rem,16cqw,5.5rem)] leading-[0.9] tracking-[0.02em] text-on-photo">
+        {/*
+          Retuned for Michroma, not merely re-familied.
+
+          Measured in a browser: at the same point size Michroma sets
+          "JC MUAY THAI" 2.01× as wide as Anton, and the whole hero grid
+          ran 74px off the side of a 320px phone when the family was
+          swapped and nothing else. An extended square face cannot wear a
+          condensed face's metrics.
+
+          16cqw became 11cqw — not the full half, because the wordmark
+          breaks to two lines and the constraint is "JC MUAY", not the
+          whole string. The clamp floor and ceiling came down with it.
+
+          12cqw was the first answer and it broke to THREE lines at
+          exactly 1024px — the card is at its narrowest against its own
+          padding right at the lg breakpoint, and the wordmark split
+          JC / MUAY / THAI there and nowhere else. Swept every width from
+          320 to 1920 to find it; 11cqw holds two lines throughout.
+
+          The tracking reversed sign. Anton is tight enough to need
+          0.02em opening it up; Michroma is drawn with generous
+          sidebearings already, and adding to them pushed the second line
+          out on its own. At -0.02em the wordmark holds together as one
+          object — the face ships no kern pair for A→Y, so at 45px
+          "MUAY" read as "MUA Y" with the default spacing.
+
+          leading 0.9 → 1.02 for the same reason in the other direction:
+          0.9 is safe under Anton's very large caps and collides under
+          Michroma's taller ascenders.
+        */}
+        <h1 className="mt-3.5 font-hero text-[clamp(1.9rem,11cqw,3.5rem)] leading-[1.02] tracking-[-0.02em] text-on-photo">
           {site.name.toUpperCase()}
         </h1>
 
-        <p className="mt-2.5 font-display text-lg tracking-[0.1em] text-accent">
+        {/*
+          18px + 0.1em set this on two lines at every width, under a
+          wordmark that is itself two lines. 14px with the tracking
+          removed puts it back on one line from 390px up. */}
+        <p className="mt-3 font-hero text-sm leading-snug text-accent">
           {site.tagline.toUpperCase()}
         </p>
 

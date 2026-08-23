@@ -35,12 +35,23 @@ export function ClassLoadChart({
 
   return (
     <TiltCard className="card-surface card-gradient card-hover flex flex-col justify-center p-5 sm:p-6 lg:col-start-2 lg:col-span-2 lg:row-start-3 lg:p-[clamp(16px,2vw,28px)]">
-      <div className="mb-3.5 flex items-baseline justify-between gap-4">
+      {/*
+        `flex-wrap` earns its place with this typeface. Michroma sets the
+        weekly total roughly twice as wide as Anton did, which took the
+        title's share of a 320px card from 183px to 110px and stacked
+        WEEKLY / CLASS / LOAD three deep. Wrapping drops the total onto
+        its own line on a phone instead, and changes nothing above 414px.
+      */}
+      <div className="mb-3.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div>
           <p className="label-mono">Sessions</p>
-          <p className="font-display text-3xl text-text">WEEKLY CLASS LOAD</p>
+          {/* 30px → 18px: this shares its line with the weekly total, and
+              Michroma set it 470px wide against 423px of card at 1280. */}
+          <p className="font-hero text-lg leading-tight text-text">
+            WEEKLY CLASS LOAD
+          </p>
         </div>
-        <p className="shrink-0 text-right font-display text-4xl text-accent-strong">
+        <p className="shrink-0 text-right font-hero text-[1.75rem] leading-tight text-accent-strong">
           {total}
           <span className="ml-1 font-mono text-sm text-text-2">classes/wk</span>
         </p>

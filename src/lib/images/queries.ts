@@ -74,7 +74,7 @@ export type SiteImages = {
  * is null because it has always been null; see src/content/classes.ts.
  */
 const BUILT_IN_SLOTS: Readonly<Record<SlotId, SiteImage | null>> = {
-  hero: builtIn("/images/hero.jpeg", "", 2560, 1706),
+  hero: builtIn("/images/hero.jpeg", "", 941, 1672),
   promo: builtIn("/images/promo.jpeg", "", 1706, 2560),
   "class-beginner": builtIn(
     "/images/beginner.jpeg",

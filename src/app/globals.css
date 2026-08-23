@@ -118,6 +118,13 @@
   );
 
   --font-display: var(--font-display-src), Impact, "Arial Narrow", sans-serif;
+
+  /* The hero's own face. Fallbacks are wide-ish rather than the display
+     stack's condensed ones — falling back from an extended square face to
+     Impact would halve the wordmark's width mid-load. See lib/fonts.ts
+     for why this is Michroma and not Good Times. */
+  --font-hero:
+    var(--font-hero-src), "Arial Black", "Helvetica Neue", Arial, sans-serif;
   --font-body:
     var(--font-body-src), -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-mono-src), "SF Mono", Consolas, monospace;

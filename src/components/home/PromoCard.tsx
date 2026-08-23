@@ -44,7 +44,9 @@ export function PromoCard({ image }: { image: SiteImage | null }) {
       <div aria-hidden className="scrim-promo absolute inset-0 -z-10" />
 
       <div className="flex w-full flex-col justify-center px-5 py-6 sm:px-8 lg:px-[clamp(20px,3vw,40px)]">
-        <p className="font-display text-[clamp(1.5rem,2.4vw,2rem)] tracking-[0.01em] text-text">
+        {/* Only the 320px end actually broke — 312px of type in 246px of
+            card — so the floor came down and the ceiling followed it. */}
+        <p className="font-hero text-[clamp(1.125rem,2.4vw,1.5rem)] leading-tight text-text">
           {trialOffer.name.toUpperCase()}
         </p>
         <p className="mt-1 max-w-[46ch] text-[13px] leading-snug text-text-2">

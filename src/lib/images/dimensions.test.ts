@@ -32,7 +32,8 @@ describe("readImageFacts — the photographs actually on the site", () => {
     ["gloves.jpeg", 2560, 1706],
     ["shadow.jpeg", 2560, 1828],
     ["silhouette.jpeg", 2560, 1706],
-    ["hero.jpeg", 2560, 1706],
+    // Replaced 2026-08-23: portrait studio shot, at the client's request.
+    ["hero.jpeg", 941, 1672],
     ["promo.jpeg", 1706, 2560],
     ["beginner.jpeg", 1531, 2560],
   ];

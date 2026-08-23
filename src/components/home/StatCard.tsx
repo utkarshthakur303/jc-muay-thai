@@ -33,7 +33,12 @@ export function StatCard({
       className={`card-surface card-gradient card-hover flex flex-col justify-center p-5 sm:p-6 lg:row-start-1 lg:p-[clamp(16px,2vw,28px)] ${className}`}
     >
       <p className="label-mono">{label}</p>
-      <p className="mt-1.5 font-display text-5xl leading-none text-text">
+      {/*
+        48px → 28px. "10+ YEARS" measured 381px wide in Michroma against
+        243px of card at 1024, where Anton fitted it in 178. Half the
+        size for the same width is what an extended face costs, and the
+        card reads as a wide plate now rather than a tall one. */}
+      <p className="mt-1.5 font-hero text-[1.75rem] leading-tight text-text">
         {value}
       </p>
       <span aria-hidden className="mt-4 block h-0.5 w-10 rounded-full bg-accent" />
