@@ -127,27 +127,45 @@ function sameCivilDate(a: CivilDate, b: CivilDate): boolean {
 }
 
 /**
- * "Today" / "Tomorrow", or null for anything further out.
+ * "Yesterday" / "Today" / "Tomorrow", or null for anything further out.
  *
  * Resolved against the gym's calendar, not the reader's. A member checking
  * their schedule from a work trip in London at 2am should see the class
  * labelled by the day it happens *at the gym* — the day they will need to
  * be there.
+ *
+ * "Yesterday" was added 2026-08-23, when the account page's history got a
+ * card of its own. A card headed WEDNESDAY 22 AUGUST makes the reader do
+ * the arithmetic; one headed YESTERDAY does not.
+ *
+ * ── THE DAY ARITHMETIC IS DONE IN CIVIL DATES, NOT MILLISECONDS ─────
+ * Adding 24 hours to an instant and reading the result is wrong twice a
+ * year: on the US spring-forward Sunday that lands 23 hours later and on
+ * the autumn one 25, so "yesterday" would be today, or the day before.
+ * The gym is in America/New_York and observes both. The offsets are
+ * therefore applied to the civil date the gym is actually on, and
+ * `gymCivilDate` is what maps an instant onto that.
+ *
+ * `now` is injectable so the boundaries can be tested at a fixed instant
+ * rather than only on the day somebody runs the suite.
  */
 export function relativeDayLabel(
   iso: string,
   timeZone: string,
-): "Today" | "Tomorrow" | null {
+  now: Date = new Date(),
+): "Yesterday" | "Today" | "Tomorrow" | null {
   const target = gymCivilDate(new Date(iso), timeZone);
-  const today = gymCivilDate(new Date(), timeZone);
+  const today = gymCivilDate(now, timeZone);
 
   if (sameCivilDate(target, today)) return "Today";
 
-  const tomorrow = gymCivilDate(
-    new Date(Date.now() + 24 * 60 * 60 * 1000),
-    timeZone,
-  );
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  const tomorrow = gymCivilDate(new Date(now.getTime() + DAY_MS), timeZone);
   if (sameCivilDate(target, tomorrow)) return "Tomorrow";
+
+  const yesterday = gymCivilDate(new Date(now.getTime() - DAY_MS), timeZone);
+  if (sameCivilDate(target, yesterday)) return "Yesterday";
 
   return null;
 }

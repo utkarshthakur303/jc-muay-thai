@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ClassAction } from "@/components/booking/ClassAction";
@@ -9,15 +8,14 @@ import {
   NoUpcomingCard,
 } from "@/components/booking/NextClassCard";
 import {
-  commitmentBySlug,
-  MONTHS_PER_YEAR,
-  planBySlug,
-  priceDisplayFor,
-} from "@/content/plans";
+  LastClassCard,
+  NoPastCard,
+} from "@/components/booking/PastClassCard";
+import { MembershipCard } from "@/components/plans/MembershipCard";
+import { commitmentBySlug, planBySlug, priceDisplayFor } from "@/content/plans";
 import { LEVEL_LABELS } from "@/content/schedule";
 import { site } from "@/content/site";
 import { signOut } from "@/lib/auth/actions";
-import { refreshPlanBookings } from "@/lib/plans/actions";
 import { memberDisplayFrom } from "@/lib/auth/memberCookie";
 import {
   countPastBookings,
@@ -31,9 +29,7 @@ import {
   formatClassTimeRange,
   relativeDayLabel,
 } from "@/lib/format/classTime";
-import { formatPrice } from "@/lib/format/money";
 import { planBookingAvailable } from "@/lib/plans/autoBook";
-import { PLAN_BOOKING_DAYS } from "@/lib/plans/planBookings";
 import { getPlanState } from "@/lib/plans/queries";
 import { getUser } from "@/lib/supabase/server";
 
@@ -167,6 +163,13 @@ export default async function AccountPage() {
    */
   const [nextUp, ...later] = upcoming;
 
+  /**
+   * The same lift for the history, in the other direction. `past` arrives
+   * newest-first from Postgres, so `mostRecent` is the last class they had
+   * booked.
+   */
+  const [mostRecent, ...earlier] = past;
+
   return (
     <MemberShell
       current="/account"
@@ -256,17 +259,37 @@ export default async function AccountPage() {
           </span>
         </h2>
 
-        {past.length === 0 ? (
-          <p className="mt-5 text-sm leading-relaxed text-text-2">
-            Your training history will build up here.
-          </p>
+        {/*
+          THE SAME SHAPE AS COMING UP, and deliberately so — asked for on
+          2026-08-23. One card for the class that matters most, then rows.
+          The two sections answer the same question in opposite directions,
+          and reading them in two different visual languages made the older
+          half look like an appendix to the newer one.
+
+          `listPastBookings` orders by `starts_at` DESCENDING in Postgres,
+          so the first row is the most recent. Nothing re-sorts here, and
+          nothing may: sorting a page of twenty in JavaScript sorts the
+          wrong twenty.
+        */}
+        {!mostRecent ? (
+          <NoPastCard />
         ) : (
           <>
-            <ul role="list" className="mt-1 flex flex-col">
-              {past.map((entry) => (
-                <ClassLine key={entry.occurrenceId} entry={entry} />
-              ))}
-            </ul>
+            <LastClassCard entry={mostRecent} />
+
+            {earlier.length > 0 ? (
+              <>
+                <p className="mt-8 font-mono text-[11px] tracking-[0.14em] text-text-3 uppercase">
+                  Before that
+                </p>
+                <ul role="list" className="mt-1 flex flex-col">
+                  {earlier.map((entry) => (
+                    <ClassLine key={entry.occurrenceId} entry={entry} />
+                  ))}
+                </ul>
+              </>
+            ) : null}
+
             {pastTotal > past.length ? (
               <p className="mt-4 font-mono text-[11px] text-text-3">
                 Showing the most recent {past.length}.
@@ -289,96 +312,12 @@ export default async function AccountPage() {
             Membership
           </h2>
 
-          <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-divider py-4">
-            <div className="min-w-0">
-              <p className="text-sm text-text">
-                {chosenPlan && shownPrice
-                  ? `${chosenPlan.name} · ${formatPrice(shownPrice.cents)} a ${shownPrice.basis}`
-                  : "No plan chosen yet"}
-              </p>
-              {/*
-                The term, when they picked one. Second line rather than
-                appended, because the first line now carries a price and
-                "Advanced · $190 a month · 12-week contract" is a sentence
-                nobody parses at a glance.
-              */}
-              {chosenPlan && chosenTerm ? (
-                <p className="mt-0.5 text-[13px] leading-snug text-text-2">
-                  {chosenTerm.name}
-                  {/*
-                    The year, shown as what it is. A bare "$1,800 a year"
-                    on a member's own account page is a figure they will
-                    reasonably believe somebody agreed to; the gym has no
-                    annual rate and bills monthly, so the arithmetic
-                    travels with the number everywhere it appears.
-                  */}
-                  {shownPrice?.basis === "year"
-                    ? ` — ${MONTHS_PER_YEAR} × ${formatPrice(shownPrice.perMonthCents)} a month, billed monthly`
-                    : ""}
-                </p>
-              ) : null}
-
-              {/*
-                Said plainly, every time it is shown, and it matters more
-                now than it did. A member who reads "Advanced · $190 a
-                month" on their own account page and is never told
-                otherwise will reasonably believe they are being billed.
-                Nobody has been charged and nothing has been agreed; this
-                is a note of what they said they wanted, at the gym's
-                standard rate.
-              */}
-              <p className="mt-0.5 text-[13px] leading-snug text-text-3">
-                An interest, not a subscription — nothing here charges you,
-                and the gym settles the price with you in person.
-              </p>
-
-              {/*
-                What the plan does to this page, stated where the plan is.
-
-                Only when it is actually doing it: `booksClasses` is false
-                until the migration adding `bookings.source` has been run,
-                and false for anyone on the two-week trial, which books
-                nothing by design. The sentence also has to name the way
-                out — a feature that fills your calendar and does not say
-                how to stop is one people work around rather than use.
-              */}
-              {booksClasses && chosenPlan && chosenTerm?.slug !== "trial" ? (
-                <p className="mt-0.5 text-[13px] leading-snug text-text-3">
-                  Your plan books you into {chosenPlan.name} classes{" "}
-                  {PLAN_BOOKING_DAYS} days ahead. Cancel any of them above,
-                  ask for the next week whenever you like, or change your plan
-                  to hand the rest back.
-                </p>
-              ) : null}
-            </div>
-
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {/*
-                Tops the week back up. Only offered when it can do
-                something: the migration has landed, they have a plan, and
-                the plan is not the trial — which books nothing by design.
-                A button that is guaranteed to report "nothing to add" is
-                a button that teaches people to ignore it.
-              */}
-              {booksClasses && chosenPlan && chosenTerm?.slug !== "trial" ? (
-                <form action={refreshPlanBookings}>
-                  <button
-                    type="submit"
-                    className="flex min-h-11 items-center rounded-full border border-border px-5 font-mono text-[11px] tracking-[0.08em] text-text-2 uppercase transition-colors hover:border-accent hover:text-accent-strong"
-                  >
-                    Book my next week
-                  </button>
-                </form>
-              ) : null}
-
-              <Link
-                href="/plans?next=%2Faccount"
-                className="flex min-h-11 items-center rounded-full border border-border px-5 font-mono text-[11px] tracking-[0.08em] text-text-2 uppercase transition-colors hover:border-accent hover:text-accent-strong"
-              >
-                {chosenPlan ? "Change" : "Choose"}
-              </Link>
-            </div>
-          </div>
+          <MembershipCard
+            plan={chosenPlan}
+            term={chosenTerm}
+            price={shownPrice}
+            booksClasses={booksClasses}
+          />
         </section>
       ) : null}
 
