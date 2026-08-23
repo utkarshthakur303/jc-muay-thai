@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 
 import { isCommitmentSlug, isPlanSlug } from "@/content/plans";
 import { safeNextPath } from "@/lib/auth/redirects";
+import { syncPlanBookings } from "@/lib/plans/autoBook";
+import { planBookingTarget } from "@/lib/plans/planBookings";
+import { getPlanState } from "@/lib/plans/queries";
 // Type-only, and it has to stay that way: a "use server" module may export
 // nothing but async functions. See lib/plans/state.ts.
 import type { PlanActionState } from "@/lib/plans/state";
@@ -124,6 +127,26 @@ export async function choosePlan(
     };
   }
 
+  /**
+   * ── THE PLAN NOW BOOKS CLASSES ─────────────────────────────────────
+   *
+   * Asked for on 2026-08-23, and the client chose this over surfacing
+   * the classes for one-tap booking with the cost stated in front of
+   * them: these are real bookings against a real capacity of sixteen,
+   * and the member's name goes on the roster the coach reads at the
+   * door.
+   *
+   * AFTER the plan is saved, deliberately. The answer to "which class
+   * are you interested in" is the thing the gym actually asked for; the
+   * bookings are a consequence of it. If this half fails, the answer is
+   * still recorded and the member is told what did and did not happen.
+   *
+   * It cannot throw — every path inside returns counts — so it does not
+   * need a try/catch, and must not have one that could swallow the
+   * redirect below.
+   */
+  const outcome = await syncPlanBookings(planBookingTarget(slug, commitment));
+
   revalidatePath("/account");
   revalidatePath("/book");
 
@@ -137,15 +160,111 @@ export async function choosePlan(
    * credibility to land a member on a lookalike page. A hostile value
    * collapses to "/" rather than being followed.
    *
-   * The fallback is /book rather than safeNextPath's own "/" default,
-   * because that default was written for the auth screens, where somebody
-   * signing in from the home page wants the home page back. Here the whole
-   * point of the screen is that it stands between a member and booking.
+   * ── THE FALLBACK IS NOW THE HOME PAGE, NOT /book ───────────────────
+   *
+   * The client's instruction on 2026-08-23, and the feature above is
+   * what makes it coherent rather than obstructive. It used to be /book
+   * because this screen stood between a member and booking; now
+   * choosing a plan *is* booking, so sending them to the calendar to do
+   * it again would be asking twice. An explicit `next` — the "Change"
+   * link on /account, the trial panel's route to /book — still wins.
    */
   const requested = formData.get("next");
-  redirect(
+  const destination =
     typeof requested === "string" && requested.length > 0
       ? safeNextPath(requested)
-      : "/book",
+      : "/";
+
+  redirect(withOutcome(destination, slug, commitment, outcome));
+}
+
+/**
+ * Booking the week ahead again, for a plan that was chosen a while back.
+ *
+ * ── WHY THIS BUTTON HAS TO EXIST ───────────────────────────────────
+ *
+ * A plan books seven days. Seven days later those classes have happened,
+ * and without a way to ask for more, "your plan books your classes"
+ * quietly becomes something it did once, in the past — while the account
+ * page carries on saying it in the present tense.
+ *
+ * ── AND WHY IT IS A BUTTON RATHER THAN AUTOMATIC ───────────────────
+ *
+ * The obvious alternative is to top the week up whenever a member opens
+ * /account. That would be a page render that consumes capacity, and a
+ * render runs on a prefetch, on a refresh, on a React double-render, and
+ * on a link the member merely hovered. Nobody would have pressed
+ * anything. Booking is not idempotent the way generating timetable rows
+ * is, and the difference is a stranger's name on the gym's roster.
+ *
+ * So the same rule as everywhere else here: bookings happen because
+ * somebody asked for them.
+ *
+ * It reads the plan from the database rather than taking it from the
+ * form. There is no decision to submit — the answer is already stored,
+ * and accepting one here would be a second way to change a plan, on a
+ * button that does not say so.
+ */
+export async function refreshPlanBookings(): Promise<void> {
+  const user = await getUser();
+  if (!user) redirect("/login?next=%2Faccount");
+
+  const state = await getPlanState();
+  const outcome = await syncPlanBookings(
+    planBookingTarget(state.slug, state.commitment),
   );
+
+  revalidatePath("/account");
+  revalidatePath("/book");
+
+  // Straight back to /account, carrying the counts — so the same banner
+  // that reports a plan choice reports this, and there is one place where
+  // "what just happened to my classes" is written down.
+  redirect(withOutcome("/account", state.slug, state.commitment, outcome));
+}
+
+/**
+ * The confirmation, carried in the URL.
+ *
+ * A member who chooses Intermediate and silently finds six classes in
+ * their account has been done something to. They have to be told, on the
+ * page they land on — and the page they land on is usually the home page,
+ * which is statically prerendered and must stay that way.
+ *
+ * So it travels as a query string and is read after mount by a client
+ * component, exactly as the member chip reads the display cookie. Nothing
+ * on the server reads it, so `/` keeps its prerender. If the build output
+ * ever shows `/` as dynamic, something started reading this during render.
+ *
+ * IT IS A CONFIRMATION, NOT A RECORD. Anyone can type `?booked=99` into
+ * their own address bar and read a sentence that is not true about their
+ * own browser, which is why the banner clamps what it will repeat and
+ * links straight to the real list on /account. The same reasoning as the
+ * display cookie: it shows, it does not authorise, and the truth is one
+ * click away.
+ */
+function withOutcome(
+  destination: string,
+  slug: string | null,
+  commitment: string | null,
+  outcome: { available: boolean; booked: number; released: number },
+): string {
+  const params = new URLSearchParams();
+  params.set("plan", slug ?? "none");
+  if (commitment) params.set("term", commitment);
+
+  /**
+   * Counts only when the feature is actually on. Before the migration
+   * lands `available` is false and nothing was booked — omitting them is
+   * what stops the banner claiming a week of classes that do not exist.
+   */
+  if (outcome.available) {
+    params.set("booked", String(outcome.booked));
+    if (outcome.released > 0) params.set("released", String(outcome.released));
+  }
+
+  // safeNextPath permits a path that already carries a query string, so
+  // the separator is decided rather than assumed.
+  const separator = destination.includes("?") ? "&" : "?";
+  return `${destination}${separator}${params.toString()}`;
 }

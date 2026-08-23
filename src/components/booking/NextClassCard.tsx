@@ -67,6 +67,22 @@ export function NextClassCard({ entry }: { entry: BookedClass }) {
       </p>
 
       {/*
+        Where this booking came from, when it was not a press.
+
+        A member who chose Intermediate is booked into the week ahead
+        automatically, and the first thing they see on this page is a
+        class they have no memory of choosing. Saying so is the
+        difference between a schedule they trust and one they think is
+        wrong. Absent on bookings they made themselves, which is most of
+        them, so it stays a note rather than noise.
+      */}
+      {entry.fromPlan ? (
+        <p className="mt-1 font-mono text-[11px] tracking-[0.08em] text-text-3 uppercase">
+          Booked by your plan
+        </p>
+      ) : null}
+
+      {/*
         The gym cancelled this one. Shown rather than hidden: a member
         whose class disappears without explanation assumes the site lost it
         and turns up anyway. No cancel control either — there is nothing

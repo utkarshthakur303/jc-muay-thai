@@ -5,6 +5,8 @@ import { MemberShell } from "@/components/booking/MemberShell";
 import { PlanPicker } from "@/components/plans/PlanPicker";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { countUpcomingBookings } from "@/lib/booking/queries";
+import { planBookingAvailable } from "@/lib/plans/autoBook";
+import { PLAN_BOOKING_DAYS } from "@/lib/plans/planBookings";
 import { getPlanState } from "@/lib/plans/queries";
 import { getUser } from "@/lib/supabase/server";
 
@@ -26,10 +28,11 @@ export default async function PlansPage({
    */
   if (!user) redirect("/login?next=/plans");
 
-  const [{ available, slug, commitment }, upcomingCount, params] =
+  const [{ available, slug, commitment }, upcomingCount, booksClasses, params] =
     await Promise.all([
       getPlanState(),
       countUpcomingBookings(),
+      planBookingAvailable(),
       searchParams,
     ]);
 
@@ -41,7 +44,13 @@ export default async function PlansPage({
    */
   if (!available) redirect("/book");
 
-  const next = params.next ? safeNextPath(params.next) : "/book";
+  /**
+   * THE DEFAULT DESTINATION IS NOW THE HOME PAGE, not /book — the
+   * client's instruction on 2026-08-23. An explicit `next` still wins,
+   * which is how the "Change" link on /account gets a member back to the
+   * page they were reading and how the trial panel reaches /book.
+   */
+  const next = params.next ? safeNextPath(params.next) : "/";
 
   /*
     `width="wide"` — the one member page that is not a reading column.
@@ -63,6 +72,30 @@ export default async function PlansPage({
         in. You can change it any time from your account, and you can book
         classes either way.
       </p>
+
+      {/*
+        ── SAID BEFORE THE PRESS, NOT AFTER IT ─────────────────────────
+
+        From 2026-08-23 choosing a plan books real classes. A member who
+        finds six bookings they do not remember making has been done
+        something to, however useful it turns out to be — so the page
+        says what the button does, above the button.
+
+        AND ONLY WHEN IT IS TRUE. `booksClasses` is false until the
+        client has run the migration that adds `bookings.source`, and in
+        that window choosing a plan books nothing at all. A promise the
+        feature cannot keep yet is worse than no promise: the member
+        would go looking for classes that are not there and conclude the
+        site lost them.
+      */}
+      {booksClasses ? (
+        <p className="mt-3 max-w-prose text-sm leading-relaxed text-text-2">
+          Choosing a class also books you into it for the next{" "}
+          {PLAN_BOOKING_DAYS} days, wherever the gym has room, so your
+          classes are ready and waiting. Cancel any of them whenever you
+          like, and changing your plan later hands those spots back.
+        </p>
+      ) : null}
 
       {/*
         THE PLANS ON THIS PAGE WERE INVENTED UNTIL 2026-08-18.

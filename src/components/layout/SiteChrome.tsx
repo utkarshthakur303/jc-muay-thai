@@ -1,5 +1,6 @@
 import { StreakProvider } from "@/components/attendance/StreakProvider";
 import { ActiveSectionProvider } from "@/components/layout/ActiveSection";
+import { PlanConfirmation } from "@/components/plans/PlanConfirmation";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { SidebarRail } from "@/components/layout/SidebarRail";
 import { TopBar } from "@/components/layout/TopBar";
@@ -89,6 +90,14 @@ export function SiteChrome({
             </div>
           </footer>
         </div>
+
+        {/*
+          What just happened, for a member arriving from the plans page.
+          Renders null unless the URL says otherwise, and reads that URL
+          after mount — so the home page keeps its static prerender. See
+          the header of PlanConfirmation.
+        */}
+        <PlanConfirmation />
       </StreakProvider>
     </ActiveSectionProvider>
   );

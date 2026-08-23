@@ -62,6 +62,17 @@ export type BookedClass = {
   readonly level: LevelId;
   readonly cancelledByGym: boolean;
   readonly cancellationNote: string | null;
+  /**
+   * The member's plan booked this, not the member.
+   *
+   * Shown on the row, because ten classes appearing in "Coming up" that
+   * somebody does not remember booking is exactly the kind of thing that
+   * makes people distrust a schedule they are meant to turn up to. False
+   * whenever the distinction cannot be read — before the migration that
+   * adds `bookings.source`, every class simply reads as their own, which
+   * is what it was until the feature existed.
+   */
+  readonly fromPlan: boolean;
 };
 
 /** Rows arrive as `unknown` from PostgREST; nothing is trusted on the way in. */
@@ -150,25 +161,53 @@ async function listMine(
   const nowIso = new Date().toISOString();
   const upcoming = when === "upcoming";
 
-  let query = supabase
-    .from("class_occurrences")
-    .select(
-      "id,starts_at,ends_at,level,status,cancellation_note,bookings!inner(status)",
-    )
-    .eq("bookings.user_id", user.id)
-    .eq("bookings.status", "booked");
+  /**
+   * ── WHY THE SELECT IS ATTEMPTED TWICE ──────────────────────────────
+   *
+   * `bookings.source` arrives in a migration the client runs by hand,
+   * after this code is already live. Asking for a column PostgREST has
+   * never heard of does not degrade the answer — it fails the query, and
+   * this function reports a failed query as an empty list. The account
+   * page would show a member with six classes booked that they have
+   * none, on the one screen whose whole job is to tell them when they
+   * are next training.
+   *
+   * So the richer shape is tried first and the original is the fallback.
+   * The only thing lost in that window is the "from your plan" tag,
+   * which describes a feature that is not switched on yet anyway.
+   */
+  const run = (withSource: boolean) => {
+    let query = supabase
+      .from("class_occurrences")
+      .select(
+        withSource
+          ? "id,starts_at,ends_at,level,status,cancellation_note,bookings!inner(status,source)"
+          : "id,starts_at,ends_at,level,status,cancellation_note,bookings!inner(status)",
+      )
+      .eq("bookings.user_id", user.id)
+      .eq("bookings.status", "booked");
 
-  query = upcoming
-    ? query
-        .gt("starts_at", nowIso)
-        .order("starts_at", { ascending: true })
-        .limit(UPCOMING_PAGE_SIZE)
-    : query
-        .lte("starts_at", nowIso)
-        .order("starts_at", { ascending: false })
-        .limit(PAST_PAGE_SIZE);
+    query = upcoming
+      ? query
+          .gt("starts_at", nowIso)
+          .order("starts_at", { ascending: true })
+          .limit(UPCOMING_PAGE_SIZE)
+      : query
+          .lte("starts_at", nowIso)
+          .order("starts_at", { ascending: false })
+          .limit(PAST_PAGE_SIZE);
 
-  const { data, error } = await query;
+    return query;
+  };
+
+  let { data, error } = await run(true);
+
+  // PGRST204 / 42703 both mean "that column is not there yet". Any other
+  // error is a real failure and is reported as one, unchanged.
+  if (error && (error.code === "PGRST204" || error.code === "42703")) {
+    ({ data, error } = await run(false));
+  }
+
   if (error || !data) return [];
 
   return data.map((row) => ({
@@ -179,7 +218,31 @@ async function listMine(
     cancelledByGym: row.status === "cancelled",
     cancellationNote:
       typeof row.cancellation_note === "string" ? row.cancellation_note : null,
+    fromPlan: bookedByPlan(row.bookings),
   }));
+}
+
+/**
+ * Did the plan make this booking?
+ *
+ * The embed is filtered to this member and to live bookings, so there is
+ * at most one row — `bookings_one_per_member` allows no more. Written
+ * defensively anyway because PostgREST hands back an object for a
+ * to-one embed and an array for a to-many, and which one it decides on
+ * depends on the constraints it can see.
+ *
+ * Anything unreadable is `false`: "their own booking" is the state this
+ * page has always described, so an unknown reads as the status quo
+ * rather than as a claim about where a class came from.
+ */
+function bookedByPlan(value: unknown): boolean {
+  const rows = Array.isArray(value) ? value : [value];
+  return rows.some(
+    (row) =>
+      typeof row === "object" &&
+      row !== null &&
+      (row as { source?: unknown }).source === "plan",
+  );
 }
 
 export function listUpcomingBookings(): Promise<BookedClass[]> {

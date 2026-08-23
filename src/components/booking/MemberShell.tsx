@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { BookingToastProvider } from "@/components/booking/BookingToast";
+import { PlanConfirmation } from "@/components/plans/PlanConfirmation";
 import { site } from "@/content/site";
 
 /**
@@ -147,6 +148,15 @@ export function MemberShell({
 
         {children}
       </main>
+
+      {/*
+        Here as well as on the home page, because /plans honours an
+        explicit `next` — the "Change" link on /account comes back to
+        /account, and the trial panel goes to /book. A confirmation that
+        only appeared on one of the three destinations would be missing
+        exactly where somebody was paying closest attention.
+      */}
+      <PlanConfirmation />
     </BookingToastProvider>
   );
 }

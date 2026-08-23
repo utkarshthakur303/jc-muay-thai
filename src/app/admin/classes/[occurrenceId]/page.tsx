@@ -46,9 +46,31 @@ function NameRow({ entry, muted }: { entry: RosterEntry; muted?: boolean }) {
         */}
         {entry.fullName ?? entry.email}
       </Link>
-      {entry.fullName ? (
-        <span className="font-mono text-[12px] text-text-3">{entry.email}</span>
-      ) : null}
+      <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {/*
+          ── WHERE THE BOOKING CAME FROM ──────────────────────────────
+
+          From 2026-08-23, choosing a plan books that member into the
+          week ahead at their level. So some of these names are people
+          who picked this evening, and some are people whose plan picked
+          it for them — and they are not the same thing to whoever is
+          deciding whether to open a second mat.
+
+          Marked rather than separated into its own list: they are all
+          coming, they all hold a spot, and splitting the register in two
+          would make the door harder to work, not easier.
+        */}
+        {entry.fromPlan ? (
+          <span className="rounded-full border border-border px-2 py-0.5 font-mono text-[10px] tracking-[0.08em] text-text-3 uppercase">
+            From plan
+          </span>
+        ) : null}
+        {entry.fullName ? (
+          <span className="font-mono text-[12px] text-text-3">
+            {entry.email}
+          </span>
+        ) : null}
+      </span>
     </li>
   );
 }

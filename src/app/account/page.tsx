@@ -17,6 +17,7 @@ import {
 import { LEVEL_LABELS } from "@/content/schedule";
 import { site } from "@/content/site";
 import { signOut } from "@/lib/auth/actions";
+import { refreshPlanBookings } from "@/lib/plans/actions";
 import { memberDisplayFrom } from "@/lib/auth/memberCookie";
 import {
   countPastBookings,
@@ -31,6 +32,8 @@ import {
   relativeDayLabel,
 } from "@/lib/format/classTime";
 import { formatPrice } from "@/lib/format/money";
+import { planBookingAvailable } from "@/lib/plans/autoBook";
+import { PLAN_BOOKING_DAYS } from "@/lib/plans/planBookings";
 import { getPlanState } from "@/lib/plans/queries";
 import { getUser } from "@/lib/supabase/server";
 
@@ -70,6 +73,22 @@ function ClassLine({
             ·
           </span>
           {level}
+          {/*
+            Marked, not hidden. These rows appear without the member
+            pressing anything — see the note in NextClassCard — and an
+            unexplained booking is one somebody either turns up to by
+            accident or stops trusting the whole list over.
+          */}
+          {entry.fromPlan ? (
+            <>
+              <span aria-hidden className="px-2 text-text-3">
+                ·
+              </span>
+              <span className="font-mono text-[11px] tracking-[0.08em] text-text-3 uppercase">
+                From your plan
+              </span>
+            </>
+          ) : null}
         </p>
 
         {/*
@@ -108,13 +127,14 @@ export default async function AccountPage() {
    */
   const { name: fullName } = memberDisplayFrom(user);
 
-  const [upcoming, upcomingTotal, past, pastTotal, planState] =
+  const [upcoming, upcomingTotal, past, pastTotal, planState, booksClasses] =
     await Promise.all([
       listUpcomingBookings(),
       countUpcomingBookings(),
       listPastBookings(),
       countPastBookings(),
       getPlanState(),
+      planBookingAvailable(),
     ]);
 
   const chosenPlan = planState.slug ? planBySlug(planState.slug) : undefined;
@@ -311,14 +331,53 @@ export default async function AccountPage() {
                 An interest, not a subscription — nothing here charges you,
                 and the gym settles the price with you in person.
               </p>
+
+              {/*
+                What the plan does to this page, stated where the plan is.
+
+                Only when it is actually doing it: `booksClasses` is false
+                until the migration adding `bookings.source` has been run,
+                and false for anyone on the two-week trial, which books
+                nothing by design. The sentence also has to name the way
+                out — a feature that fills your calendar and does not say
+                how to stop is one people work around rather than use.
+              */}
+              {booksClasses && chosenPlan && chosenTerm?.slug !== "trial" ? (
+                <p className="mt-0.5 text-[13px] leading-snug text-text-3">
+                  Your plan books you into {chosenPlan.name} classes{" "}
+                  {PLAN_BOOKING_DAYS} days ahead. Cancel any of them above,
+                  ask for the next week whenever you like, or change your plan
+                  to hand the rest back.
+                </p>
+              ) : null}
             </div>
 
-            <Link
-              href="/plans?next=%2Faccount"
-              className="flex min-h-11 shrink-0 items-center rounded-full border border-border px-5 font-mono text-[11px] tracking-[0.08em] text-text-2 uppercase transition-colors hover:border-accent hover:text-accent-strong"
-            >
-              {chosenPlan ? "Change" : "Choose"}
-            </Link>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {/*
+                Tops the week back up. Only offered when it can do
+                something: the migration has landed, they have a plan, and
+                the plan is not the trial — which books nothing by design.
+                A button that is guaranteed to report "nothing to add" is
+                a button that teaches people to ignore it.
+              */}
+              {booksClasses && chosenPlan && chosenTerm?.slug !== "trial" ? (
+                <form action={refreshPlanBookings}>
+                  <button
+                    type="submit"
+                    className="flex min-h-11 items-center rounded-full border border-border px-5 font-mono text-[11px] tracking-[0.08em] text-text-2 uppercase transition-colors hover:border-accent hover:text-accent-strong"
+                  >
+                    Book my next week
+                  </button>
+                </form>
+              ) : null}
+
+              <Link
+                href="/plans?next=%2Faccount"
+                className="flex min-h-11 items-center rounded-full border border-border px-5 font-mono text-[11px] tracking-[0.08em] text-text-2 uppercase transition-colors hover:border-accent hover:text-accent-strong"
+              >
+                {chosenPlan ? "Change" : "Choose"}
+              </Link>
+            </div>
           </div>
         </section>
       ) : null}

@@ -79,15 +79,54 @@ export async function bookClass(
    * and the trigger treats a status change exactly as it treats a new
    * booking, so occupancy stays correct either way.
    */
-  const { error } = await supabase.from("bookings").upsert(
-    {
-      occurrence_id: parsed.data,
-      user_id: user.id,
-      status: "booked",
-      cancelled_at: null,
-    },
-    { onConflict: "occurrence_id,user_id" },
-  );
+  const row = {
+    occurrence_id: parsed.data,
+    user_id: user.id,
+    status: "booked",
+    cancelled_at: null,
+  };
+
+  /**
+   * `source: "member"` marks this as a decision about a specific class,
+   * which is what protects it from a later plan change: choosing a
+   * different plan releases the bookings the plan made and leaves these
+   * alone. It is written on every press, including a re-book of
+   * something the plan had booked and the member cancelled — that
+   * second press is a decision, and it should survive.
+   *
+   * ── AND WHY IT IS ATTEMPTED RATHER THAN ASSUMED ────────────────────
+   *
+   * The column arrives in a migration the client runs by hand, after
+   * this code is already live. Naming a column PostgREST has never heard
+   * of comes back PGRST204 and fails the write — which would mean
+   * BOOKING ITSELF BROKEN, for every member, for as long as the SQL sat
+   * unrun. That is not a degradation anybody would accept for a label.
+   *
+   * So the label is optional: if the column is not there, the same row
+   * goes in without it. The only thing lost in that window is the
+   * distinction, and nothing reads the distinction until the migration
+   * lands either.
+   */
+  const attempt = (withSource: boolean) => {
+    // One payload shape, built then narrowed, rather than two object
+    // literals in a ternary — the generated PostgREST types reject a
+    // union of row shapes at the call site.
+    const payload: Record<string, unknown> = { ...row };
+    if (withSource) payload.source = "member";
+
+    return supabase
+      .from("bookings")
+      .upsert(payload, { onConflict: "occurrence_id,user_id" });
+  };
+
+  let { error } = await attempt(true);
+
+  // PGRST204 is PostgREST's "column not in the schema cache"; 42703 is
+  // Postgres's own "column does not exist", which a direct path would
+  // raise instead. Both mean the migration has not been run.
+  if (error && (error.code === "PGRST204" || error.code === "42703")) {
+    ({ error } = await attempt(false));
+  }
 
   if (error) {
     return {

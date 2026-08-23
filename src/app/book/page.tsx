@@ -44,7 +44,15 @@ export default async function BookPage() {
    * going to see.
    */
   const plan = await getPlanState();
-  if (plan.available && !plan.asked) redirect("/plans?next=%2Fbook");
+  /**
+   * No `next`, from 2026-08-23. It used to carry `next=/book` so a member
+   * intercepted on the way here was returned here — but choosing a plan
+   * now books the week ahead at that level, so the calendar is no longer
+   * where they need to be next, and the client asked for the home page.
+   * The "I'll decide later" control on /plans still comes straight back,
+   * because it names /book itself rather than echoing this.
+   */
+  if (plan.available && !plan.asked) redirect("/plans");
 
   /**
    * Creates any classes that do not exist yet. Idempotent, and cheap in the

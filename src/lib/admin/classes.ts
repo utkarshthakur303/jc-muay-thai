@@ -99,6 +99,18 @@ export async function listClasses(
   return data.map(toAdminClass);
 }
 
+/**
+ * A booking row as it arrives, with `source` optional — the two selects
+ * below differ by exactly that column, and one shape here is what lets
+ * them share a mapper instead of duplicating it.
+ */
+type BookingRow = {
+  user_id?: unknown;
+  status?: unknown;
+  created_at?: unknown;
+  source?: unknown;
+};
+
 export type RosterEntry = {
   readonly userId: string;
   readonly fullName: string | null;
@@ -106,6 +118,17 @@ export type RosterEntry = {
   /** False when the member booked and then cancelled. */
   readonly attending: boolean;
   readonly bookedAt: string;
+  /**
+   * Their plan put them here; they did not press Book on this class.
+   *
+   * The gym has to be able to see this. From 2026-08-23 choosing a plan
+   * books the week ahead at that level, which means names on this roster
+   * that nobody individually decided on — and "eight people are coming"
+   * means something different depending on how many of them chose the
+   * evening. Marking it is what keeps the roster a fact rather than an
+   * impression.
+   */
+  readonly fromPlan: boolean;
 };
 
 export type ClassRoster = {
@@ -144,13 +167,38 @@ export async function getClassRoster(
 
   if (error || !occurrence) return null;
 
-  const { data: bookings } = await supabase
+  /**
+   * `source` arrives in a migration the client runs by hand, after this
+   * code is live. Asking PostgREST for a column it has never heard of
+   * fails the whole query, and a failed query here is an EMPTY ROSTER —
+   * the screen the gym stands in front of, saying nobody is coming to a
+   * class eight people booked. So the richer shape is attempted and the
+   * original is the fallback; the only thing missing in that window is a
+   * label for a feature that is not switched on yet.
+   */
+  const withSource = await supabase
     .from("bookings")
-    .select("user_id,status,created_at")
+    .select("user_id,status,created_at,source")
     .eq("occurrence_id", occurrenceId)
     .limit(ROSTER_PAGE_SIZE);
 
-  const rows = bookings ?? [];
+  let rows: BookingRow[] = withSource.data ?? [];
+
+  // PGRST204 is PostgREST's "column not in the schema cache"; 42703 is
+  // Postgres's own "column does not exist". Any other error leaves the
+  // list empty, exactly as it did before — a real failure is not quietly
+  // retried into a half answer.
+  if (
+    withSource.error &&
+    (withSource.error.code === "PGRST204" || withSource.error.code === "42703")
+  ) {
+    const plain = await supabase
+      .from("bookings")
+      .select("user_id,status,created_at")
+      .eq("occurrence_id", occurrenceId)
+      .limit(ROSTER_PAGE_SIZE);
+    rows = plain.data ?? [];
+  }
   const userIds = [...new Set(rows.map((row) => asString(row.user_id)))].filter(
     Boolean,
   );
@@ -176,6 +224,10 @@ export async function getClassRoster(
       email: asString(profile?.email),
       attending: row.status === "booked",
       bookedAt: asString(row.created_at),
+      // Anything but the literal 'plan' reads as the member's own —
+      // including the absent column, which is what every row was before
+      // plan booking existed.
+      fromPlan: row.source === "plan",
     };
   });
 
