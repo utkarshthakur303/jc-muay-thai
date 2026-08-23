@@ -3,7 +3,12 @@ import { notFound } from "next/navigation";
 
 import { AdminShell } from "@/components/admin/AdminShell";
 import { QuoteForm } from "@/components/admin/QuoteForm";
-import { commitmentBySlug, planBySlug, priceFor } from "@/content/plans";
+import {
+  commitmentBySlug,
+  MONTHS_PER_YEAR,
+  planBySlug,
+  priceFor,
+} from "@/content/plans";
 import { LEVEL_LABELS } from "@/content/schedule";
 import { site } from "@/content/site";
 import { requireAdmin } from "@/lib/admin/guard";
@@ -95,8 +100,33 @@ export default async function AdminMemberPage({
           */}
           {plan ? (
             <p className="mt-1 font-mono text-[13px] tabular-nums text-text-2">
-              {formatMoney(priceFor(plan, term))} standard
+              {/*
+                "a month" is not padding. Since 2026-08-23 a member can
+                pick a Yearly view, and this line would otherwise read
+                "$150.00 standard · Yearly" — a figure and a unit that
+                contradict each other, on the one screen where the owner
+                is about to type a price.
+              */}
+              {formatMoney(priceFor(plan, term))} a month standard
               {term ? ` · ${term.name}` : " · term not chosen"}
+            </p>
+          ) : null}
+
+          {/*
+            WHAT "YEARLY" MEANS, said where the owner reads it.
+
+            The gym does not sell an annual plan. This member used the
+            monthly/yearly toggle on the plans page, which shows their
+            standard monthly rate multiplied by twelve and says so. They
+            have not agreed to pay a year up front and nothing here is a
+            discount — the quote box below still works in months, as it
+            always has.
+          */}
+          {plan && term?.basis === "year" ? (
+            <p className="mt-1.5 text-[13px] leading-snug text-text-3">
+              They viewed the price by the year —{" "}
+              {formatMoney(priceFor(plan, term) * MONTHS_PER_YEAR)} for twelve
+              months. The gym has no annual rate; billing is unchanged.
             </p>
           ) : null}
           {/*

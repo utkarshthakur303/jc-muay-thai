@@ -144,7 +144,17 @@ export const plans: readonly Plan[] = [
  * rather than guess at "free". An unstated price is a conversation at the
  * desk; a wrong one is a promise.
  */
-export type CommitmentSlug = "trial" | "contract" | "monthly";
+export type CommitmentSlug = "trial" | "contract" | "monthly" | "annual";
+
+/**
+ * Which unit a term's headline figure is quoted in.
+ *
+ * A field on the term rather than a check for `slug === "annual"`
+ * scattered across three components. Adding a term that is quoted per
+ * week later is then a line in this file, not a hunt for every place that
+ * hard-coded the comparison.
+ */
+export type PriceBasis = "month" | "year";
 
 export type Commitment = {
   readonly slug: CommitmentSlug;
@@ -152,6 +162,8 @@ export type Commitment = {
   readonly blurb: string;
   /** Does this term get the lower `contractPriceCents` rate? */
   readonly discounted: boolean;
+  /** Which unit the headline figure is quoted in. */
+  readonly basis: PriceBasis;
 };
 
 export const commitments: readonly Commitment[] = [
@@ -161,6 +173,7 @@ export const commitments: readonly Commitment[] = [
     blurb:
       "Perfect for newcomers. Experience training without a long-term commitment.",
     discounted: false,
+    basis: "month",
   },
   {
     slug: "contract",
@@ -168,6 +181,7 @@ export const commitments: readonly Commitment[] = [
     blurb:
       "For those ready to commit. A structured plan with monthly billing, at the lower rate.",
     discounted: true,
+    basis: "month",
   },
   {
     slug: "monthly",
@@ -175,6 +189,51 @@ export const commitments: readonly Commitment[] = [
     blurb:
       "Ongoing access with the freedom to stop, without being tied to a long-term contract.",
     discounted: false,
+    basis: "month",
+  },
+  /**
+   * ── READ THIS BEFORE TOUCHING `annual`. ──────────────────────────
+   *
+   * THE GYM DOES NOT SELL A YEARLY PLAN. Their own site publishes three
+   * terms and only three — two-week trial, 12-week contract, month to
+   * month — and no annual rate exists at any price. Verified against
+   * `old.html` in the repo root on 2026-08-23.
+   *
+   * This term is a BILLING VIEW, not a product. Its figure is the
+   * standard monthly rate multiplied by twelve and nothing else:
+   * `discounted: false` is what guarantees it never borrows the
+   * contract rate, so nobody is ever shown a cheaper year than the gym
+   * would actually charge.
+   *
+   * It exists because the client asked for a monthly/yearly toggle on
+   * 2026-08-23 with the absence of a real annual price stated in front
+   * of them, and chose the ×12 option knowingly over waiting for real
+   * numbers. That is their call and it stands.
+   *
+   * WHAT KEEPS IT HONEST, and none of it is decorative:
+   *
+   *   1. The figure is DERIVED, never stored. There is no
+   *      `annualPriceCents` field to drift out of step with the monthly
+   *      one — change a monthly price and the year follows in the same
+   *      edit. See `priceDisplayFor`.
+   *   2. Every surface that shows it also says "12 × $X a month" and
+   *      that the gym bills monthly. A total nobody has agreed to must
+   *      never appear as a bare number.
+   *   3. It is not sold as a saving, because it is not one. A year here
+   *      costs exactly twelve months.
+   *
+   * If the gym ever quotes a real annual rate, this stops being a view
+   * and becomes a product: give it its own price field, and delete this
+   * comment along with the arithmetic.
+   * ─────────────────────────────────────────────────────────────────
+   */
+  {
+    slug: "annual",
+    name: "Yearly",
+    blurb:
+      "The same month-to-month rate, shown as a year. The gym still bills monthly — there is no separate annual price.",
+    discounted: false,
+    basis: "year",
   },
 ];
 
@@ -219,6 +278,44 @@ export function priceFor(plan: Plan, commitment: Commitment | null): number {
   return plan.priceCents;
 }
 
+/** Twelve. Named so the ×12 in `priceDisplayFor` reads as a year. */
+export const MONTHS_PER_YEAR = 12;
+
+/**
+ * The headline figure for a plan on a term, and the unit it is in.
+ *
+ * The one function every price on the site goes through, so a card, the
+ * account page and the owner's panel cannot each work the year out
+ * slightly differently — which is exactly how a member ends up reading
+ * one number on screen and hearing another at the desk.
+ *
+ * The yearly figure is COMPUTED from the monthly one at the moment it is
+ * shown. It is deliberately not a field: a stored annual price is a
+ * second number to keep in step, and the day it falls out of step is the
+ * day the site advertises a year at last month's rate.
+ */
+export type PriceDisplay = {
+  readonly cents: number;
+  readonly basis: PriceBasis;
+  /** The monthly rate the figure was built from. Always real, always the gym's. */
+  readonly perMonthCents: number;
+};
+
+export function priceDisplayFor(
+  plan: Plan,
+  commitment: Commitment | null,
+): PriceDisplay {
+  const perMonthCents = priceFor(plan, commitment);
+
+  return commitment?.basis === "year"
+    ? {
+        cents: perMonthCents * MONTHS_PER_YEAR,
+        basis: "year",
+        perMonthCents,
+      }
+    : { cents: perMonthCents, basis: "month", perMonthCents };
+}
+
 /**
  * Content errors should fail the build rather than reach a member.
  *
@@ -229,6 +326,19 @@ export function priceFor(plan: Plan, commitment: Commitment | null): number {
 for (const plan of plans) {
   if (plan.priceCents <= 0) {
     throw new Error(`Plans: ${plan.slug} has a non-positive price.`);
+  }
+  /**
+   * A yearly figure that is not exactly twelve monthly ones would be a
+   * discount, or a surcharge, that nobody at the gym agreed to. Checked
+   * here rather than trusted, because `priceDisplayFor` is one edit away
+   * from someone "improving" it into a rounded number.
+   */
+  const annual = commitments.find((term) => term.slug === "annual") ?? null;
+  const shown = priceDisplayFor(plan, annual);
+  if (shown.cents !== plan.priceCents * MONTHS_PER_YEAR) {
+    throw new Error(
+      `Plans: ${plan.slug}'s yearly figure is not twelve monthly ones.`,
+    );
   }
   if (
     plan.contractPriceCents !== null &&

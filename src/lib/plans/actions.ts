@@ -75,6 +75,33 @@ export async function choosePlan(
   );
 
   if (error) {
+    /**
+     * THE MIGRATION FOR 'annual' HAS NOT BEEN APPLIED YET.
+     *
+     * 23514 is Postgres's check_violation, and the only CHECK a member can
+     * trip on this table is `member_plans_commitment_known`. Until
+     * 20260823140000_annual_commitment.sql is run, that constraint allows
+     * three terms and the plans page offers four.
+     *
+     * Named separately because the generic "please try again" is a lie
+     * here: trying again does the same thing for ever. Migrations on this
+     * project are applied by hand by the client, so the code is live
+     * before the constraint widens — there is no deploy ordering that
+     * avoids the window, only a message that survives it.
+     *
+     * The member is told which control to move rather than what went
+     * wrong internally, because the fix is entirely in their hands: the
+     * other three terms all save.
+     */
+    if (error.code === "23514") {
+      return {
+        status: "error",
+        message:
+          "The yearly view isn't switched on yet. Choose Monthly and the " +
+          "gym will talk the rest through with you.",
+      };
+    }
+
     return {
       status: "error",
       message:

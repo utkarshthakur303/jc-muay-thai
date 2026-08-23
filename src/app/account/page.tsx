@@ -8,7 +8,12 @@ import {
   NextClassCard,
   NoUpcomingCard,
 } from "@/components/booking/NextClassCard";
-import { commitmentBySlug, planBySlug, priceFor } from "@/content/plans";
+import {
+  commitmentBySlug,
+  MONTHS_PER_YEAR,
+  planBySlug,
+  priceDisplayFor,
+} from "@/content/plans";
 import { LEVEL_LABELS } from "@/content/schedule";
 import { site } from "@/content/site";
 import { signOut } from "@/lib/auth/actions";
@@ -115,6 +120,22 @@ export default async function AccountPage() {
   const chosenPlan = planState.slug ? planBySlug(planState.slug) : undefined;
   const chosenTerm = planState.commitment
     ? (commitmentBySlug(planState.commitment) ?? null)
+    : null;
+
+  /**
+   * The figure and its unit, from the same function the plans page uses.
+   *
+   * Shared rather than re-derived, because this page and that one are the
+   * two places a member reads their own price and the pair disagreeing is
+   * how somebody arrives at the desk quoting a number nobody recognises.
+   *
+   * A member on the yearly view sees a year here. That figure is twelve
+   * monthly payments and nothing else — the gym publishes no annual rate
+   * — so the line under it says so, exactly as the plan card did when
+   * they chose it.
+   */
+  const shownPrice = chosenPlan
+    ? priceDisplayFor(chosenPlan, chosenTerm)
     : null;
 
   /**
@@ -251,8 +272,8 @@ export default async function AccountPage() {
           <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-divider py-4">
             <div className="min-w-0">
               <p className="text-sm text-text">
-                {chosenPlan
-                  ? `${chosenPlan.name} · ${formatPrice(priceFor(chosenPlan, chosenTerm))} a month`
+                {chosenPlan && shownPrice
+                  ? `${chosenPlan.name} · ${formatPrice(shownPrice.cents)} a ${shownPrice.basis}`
                   : "No plan chosen yet"}
               </p>
               {/*
@@ -264,6 +285,16 @@ export default async function AccountPage() {
               {chosenPlan && chosenTerm ? (
                 <p className="mt-0.5 text-[13px] leading-snug text-text-2">
                   {chosenTerm.name}
+                  {/*
+                    The year, shown as what it is. A bare "$1,800 a year"
+                    on a member's own account page is a figure they will
+                    reasonably believe somebody agreed to; the gym has no
+                    annual rate and bills monthly, so the arithmetic
+                    travels with the number everywhere it appears.
+                  */}
+                  {shownPrice?.basis === "year"
+                    ? ` — ${MONTHS_PER_YEAR} × ${formatPrice(shownPrice.perMonthCents)} a month, billed monthly`
+                    : ""}
                 </p>
               ) : null}
 

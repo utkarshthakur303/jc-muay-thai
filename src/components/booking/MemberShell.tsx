@@ -49,10 +49,29 @@ function TabCount({ count, active }: { count: number; active: boolean }) {
   );
 }
 
+/**
+ * How wide the column runs.
+ *
+ * `prose` is the original and stays the default: /book and /account are
+ * lists and forms, which are read line by line and get harder to follow
+ * the wider they are set.
+ *
+ * `wide` exists for /plans, where the content is four cards side by side
+ * and a 768px column stacked them two-up with the page's whole right half
+ * empty. Bounded by the site's own `--layout-max-width` rather than by a
+ * new number, so the plans page ends up exactly as wide as the home page
+ * and a future change to that token moves both.
+ */
+const WIDTH: Record<"prose" | "wide", string> = {
+  prose: "max-w-3xl",
+  wide: "max-w-[var(--layout-max-width)]",
+};
+
 export function MemberShell({
   current,
   heading,
   upcomingCount = 0,
+  width = "prose",
   children,
 }: {
   /**
@@ -69,6 +88,8 @@ export function MemberShell({
   heading: string;
   /** Classes the member has coming up. Shown on the "Your classes" tab. */
   upcomingCount?: number;
+  /** See WIDTH above. Defaults to the reading column. */
+  width?: "prose" | "wide";
   children: React.ReactNode;
 }) {
   /**
@@ -79,7 +100,9 @@ export function MemberShell({
    */
   return (
     <BookingToastProvider>
-      <main className="mx-auto w-full max-w-3xl px-5 py-14 sm:px-8 lg:py-20">
+      <main
+        className={`mx-auto w-full px-5 py-14 sm:px-8 lg:py-20 ${WIDTH[width]}`}
+      >
         <Link
           href="/"
           className="font-mono text-[11px] tracking-widest text-text-2 uppercase transition-colors hover:text-accent-strong"

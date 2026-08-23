@@ -43,11 +43,19 @@ export default async function PlansPage({
 
   const next = params.next ? safeNextPath(params.next) : "/book";
 
+  /*
+    `width="wide"` — the one member page that is not a reading column.
+    Four plan cards set two-up inside a 768px column left the right half
+    of every desktop screen empty while the cards themselves were cramped.
+    At the site's own full width they run four across and each one gets
+    its price at a size worth reading. Asked for on 2026-08-23.
+  */
   return (
     <MemberShell
       current="/plans"
       heading="Choose your plan"
       upcomingCount={upcomingCount}
+      width="wide"
     >
       <p className="mt-8 max-w-prose text-sm leading-relaxed text-text-2">
         Tell us which class you&apos;re interested in and the gym will pick it
@@ -82,10 +90,23 @@ export default async function PlansPage({
         The way past is the picker's own "I'll decide later", which records
         an answer first and therefore actually arrives.
       */}
+      {/*
+        THE YEARLY FIGURE IS ARITHMETIC, NOT A PRICE THE GYM QUOTES, and
+        this paragraph is the page-level place that says so.
+
+        The gym publishes three terms and no annual rate. The client asked
+        for a monthly/yearly toggle on 2026-08-23 with that absence stated
+        in front of them and chose to show twelve monthly payments as a
+        year. Every card repeats the "12 × $X a month" line for the same
+        reason — a yearly total that appears as a bare number is one a
+        member can hold the gym to.
+      */}
       <p className="mt-8 max-w-prose text-[13px] leading-relaxed text-text-3">
-        These are the gym&apos;s standard rates. Nothing on this site takes
-        payment — the gym settles it with you in person, and that is also
-        where anything you&apos;ve agreed differently gets applied.
+        These are the gym&apos;s standard rates. A yearly figure is simply
+        twelve monthly payments — the gym has no separate annual price and
+        bills monthly either way. Nothing on this site takes payment: the
+        gym settles it with you in person, and that is also where anything
+        you&apos;ve agreed differently gets applied.
       </p>
     </MemberShell>
   );
