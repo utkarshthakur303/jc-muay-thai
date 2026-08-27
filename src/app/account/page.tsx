@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -358,6 +359,23 @@ export default async function AccountPage() {
             <dt className="text-sm text-text-2">Signed in with</dt>
             <dd className="text-sm text-text capitalize">
               {user.app_metadata?.provider ?? "email"}
+            </dd>
+          </div>
+          {/*
+            The only route to /account/password that does not involve
+            losing your password first. It had one entry point — a reset
+            email — which meant the way to change a password you still
+            knew was to declare that you had forgotten it.
+          */}
+          <div className="flex items-center justify-between gap-4 border-b border-divider py-4">
+            <dt className="text-sm text-text-2">Password</dt>
+            <dd className="text-sm">
+              <Link
+                href="/account/password"
+                className="font-medium text-accent-strong underline-offset-4 hover:underline"
+              >
+                Change
+              </Link>
             </dd>
           </div>
         </dl>

@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
    * Password recovery deliberately overrides this by passing its own
    * `next`, because a reset link that drops someone on the home page has
    * stranded them. That destination — /account/password — is not built
-   * yet, so recovery links currently 404 after a successful verification.
+   * yet, so recovery links used to 404 after a successful verification —
+   * the page exists now, and this is the only thing that points at it.
    * The fault is the missing page, not this fallback; changing the
    * fallback would hide it rather than fix it.
    */

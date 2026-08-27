@@ -33,6 +33,29 @@ export const signUpSchema = z.object({
 
 export const forgotPasswordSchema = z.object({ email: emailSchema });
 
+/**
+ * Setting a password from a recovery link, or from the account page.
+ *
+ * No current-password field, and it cannot have one: the person arriving
+ * from a reset email is here precisely because they do not know it. What
+ * stands in for it is the session, which only exists because they opened a
+ * link sent to their own inbox.
+ *
+ * The confirmation field is not ceremony. This is the one form on the site
+ * where a typo is unrecoverable in the ordinary way — you would be locked
+ * out by a password you never knowingly chose, and the only way back is
+ * another reset email.
+ */
+export const setPasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, "Repeat the new password"),
+  })
+  .refine((v) => v.password === v.confirmPassword, {
+    message: "Those two passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 export type SignInInput = z.infer<typeof signInSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;
 

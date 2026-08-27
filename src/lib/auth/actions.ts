@@ -16,6 +16,7 @@ import { safeNextPath } from "@/lib/auth/redirects";
 import { fieldErrorsFrom } from "@/lib/validation/fields";
 import {
   forgotPasswordSchema,
+  setPasswordSchema,
   signInSchema,
   signUpSchema,
   type AuthFormState,
@@ -237,4 +238,75 @@ export async function signOut(): Promise<void> {
 
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+/**
+ * Finishes a password reset.
+ *
+ * THIS IS THE OTHER HALF OF A FLOW THAT SHIPPED WITHOUT ONE. Recovery
+ * emails have always pointed at /account/password, and that page did not
+ * exist, so every reset link verified the visitor, signed them in, and
+ * dropped them on a 404. The session was real and the password was never
+ * changed — which looks, to the person holding the email, exactly like a
+ * reset that worked, right up until the old password fails again.
+ *
+ * Authorisation is the session and nothing else, and that is not an
+ * oversight. Whoever is here either opened a link sent to their own inbox
+ * or is already signed in. Asking for the current password would make the
+ * page useless to the only people who need it.
+ *
+ * No redirect on success. A reset arriving from an expired link is common
+ * enough that the difference between "done" and "the link had run out"
+ * must be visible on the page rather than inferred from where the browser
+ * ended up.
+ */
+export async function setPassword(
+  _prev: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const parsed = setPasswordSchema.safeParse({
+    password: String(formData.get("password") ?? ""),
+    confirmPassword: String(formData.get("confirmPassword") ?? ""),
+  });
+
+  if (!parsed.success) {
+    return { status: "error", fieldErrors: fieldErrorsFrom(parsed.error) };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      status: "error",
+      message:
+        "That reset link has expired or has already been used. Request a new one and try again.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data.password,
+  });
+
+  if (error) {
+    /**
+     * Supabase refuses a password under the project's minimum length, one
+     * that appears in the breached-password corpus, and one identical to
+     * the current password. All three are about this field and all three
+     * are worth repeating verbatim — they say something specific and
+     * actionable that a generic message would throw away.
+     */
+    return { status: "error", fieldErrors: { password: error.message } };
+  }
+
+  // The top bar and /account both render from the session; the password
+  // change reissues it, so anything holding the old one must re-read.
+  revalidatePath("/", "layout");
+
+  return {
+    status: "success",
+    message: "Password saved. You can use it to sign in from now on.",
+  };
 }
