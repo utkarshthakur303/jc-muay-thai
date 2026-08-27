@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { StreakProvider } from "@/components/attendance/StreakProvider";
 import { ActiveSectionProvider } from "@/components/layout/ActiveSection";
 import { PlanConfirmation } from "@/components/plans/PlanConfirmation";
@@ -84,9 +86,38 @@ export function SiteChrome({
               required for copyright to subsist, so the honest option is to
               omit what we cannot keep current without a rebuild.
             */}
-              <span className="font-mono text-xs text-text-2">
-                © {site.name}. {site.city}, {site.region}.
-              </span>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+                <span className="font-mono text-xs text-text-2">
+                  © {site.name}. {site.city}, {site.region}.
+                </span>
+
+                {/*
+                  STAFF DOOR, IN PLAIN SIGHT.
+
+                  A plain <Link>, resolved at build time, reading no cookie
+                  and asking no question about who is looking — which is
+                  what keeps the home page statically prerendered. A
+                  conditional "show it only to admins" version would have
+                  to know the visitor, and knowing the visitor is exactly
+                  the thing `/` cannot afford to do.
+
+                  Showing it to everyone is a deliberate reversal of the
+                  panel's previous obscurity, and it costs nothing real:
+                  /admin already 404s for a signed-in member and the door
+                  is a password, not the address. What it buys is an owner
+                  who can reach the panel from any page on his phone
+                  without remembering a URL.
+
+                  min-h-11 gives it a 44px target. Every other item in this
+                  row is a span, so it is the only one that needed one.
+                */}
+                <Link
+                  href="/admin/login"
+                  className="inline-flex min-h-11 items-center font-mono text-[11px] tracking-[0.08em] text-text-2 uppercase transition-colors hover:text-accent-strong"
+                >
+                  Admin
+                </Link>
+              </div>
             </div>
           </footer>
         </div>

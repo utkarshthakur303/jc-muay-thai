@@ -21,6 +21,17 @@ import {
 /** Routes that require a signed-in user. Prefix match. */
 const PROTECTED_PREFIXES = ["/account", "/admin", "/book", "/plans"] as const;
 
+/**
+ * Carved out of the prefixes above. /admin/login is the one page under
+ * /admin that a signed-out visitor must reach — it is where they go to
+ * stop being signed out — and without this the prefix match would bounce
+ * them to the member login, which is not the door they were pointed at.
+ *
+ * Exact matches, not prefixes. A prefix here would be a way to smuggle a
+ * real panel route past the check by nesting it under an exempt path.
+ */
+const PUBLIC_WITHIN_PROTECTED: readonly string[] = ["/admin/login"];
+
 /** Auth routes a signed-in user should be bounced away from. */
 const AUTH_ROUTES = ["/login", "/signup", "/forgot-password"] as const;
 
@@ -140,13 +151,22 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  const needsAuth = PROTECTED_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
+  const needsAuth =
+    !PUBLIC_WITHIN_PROTECTED.includes(pathname) &&
+    PROTECTED_PREFIXES.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`),
+    );
 
   if (needsAuth && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    /**
+     * Somewhere under /admin goes to the staff door, everything else to
+     * the member one. Sending an owner who bookmarked /admin/members to
+     * the member sign-in form asks him for a credential that would not
+     * get him there even if he typed it correctly.
+     */
+    const admin = pathname === "/admin" || pathname.startsWith("/admin/");
+    url.pathname = admin ? "/admin/login" : "/login";
     // Preserve the destination so we can return the member there after login.
     url.searchParams.set("next", pathname);
     const redirectResponse = NextResponse.redirect(url);

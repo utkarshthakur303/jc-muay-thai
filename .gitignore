@@ -7,3 +7,11 @@ next-env.d.ts
 .vercel
 .env
 .env*.local
+
+# Working notes and agent context — deliberately untracked.
+# MEMORY.md records incident state (including credentials known to be
+# compromised). This repo is PUBLIC; committing it would publish that.
+CLAUDE.md
+MEMORY.md
+PROJECT.md
+*.code-workspace

@@ -44,6 +44,27 @@ const serverSchema = z.object({
   CONTACT_FROM_EMAIL: optionalEmail,
   /** Where enquiry notifications land. Questionnaire Q1.10. */
   CONTACT_NOTIFICATION_EMAIL: optionalEmail,
+
+  /**
+   * The ID typed on /admin/login. Defaults to "admin" when unset, so the
+   * panel login works from a fresh clone with only ADMIN_LOGIN_EMAIL set.
+   *
+   * Not a secret and not a security control — it is one half of a
+   * credential, and the half that is allowed to be guessable. Configurable
+   * only so the gym can pick something other than the obvious word without
+   * a code change.
+   */
+  ADMIN_LOGIN_ID: optionalString,
+
+  /**
+   * The Supabase account /admin/login signs into. Absent → the page says
+   * so plainly instead of failing at the auth call.
+   *
+   * Server-only, and kept out of the repo, because publishing which
+   * address owns the admin account on a public GitHub repo tells an
+   * attacker exactly which account to spend their effort on.
+   */
+  ADMIN_LOGIN_EMAIL: optionalEmail,
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -60,6 +81,8 @@ export function serverEnv(): ServerEnv {
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     CONTACT_FROM_EMAIL: process.env.CONTACT_FROM_EMAIL,
     CONTACT_NOTIFICATION_EMAIL: process.env.CONTACT_NOTIFICATION_EMAIL,
+    ADMIN_LOGIN_ID: process.env.ADMIN_LOGIN_ID,
+    ADMIN_LOGIN_EMAIL: process.env.ADMIN_LOGIN_EMAIL,
   });
 
   if (!parsed.success) {

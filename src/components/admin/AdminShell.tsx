@@ -25,16 +25,22 @@ import { site } from "@/content/site";
  * advertising a page that 404s is worse than a short nav, and every item
  * here is reachable today.
  *
- * TWO GROUPS, divided by a rule rather than a heading.
+ * THREE GROUPS, divided by rules rather than headings.
  *
  *   What is happening   Overview · Classes · Members · Enquiries
  *   What the site says  Timetable · Pricing · Photos
+ *   This account        Security
  *
  * The first four are opened daily or weekly and answer questions about
- * people; the last three are the website's own content and get touched
+ * people; the next three are the website's own content and get touched
  * when something about the gym changes. Before 2026-08-23 they were
  * interleaved — Timetable and Photos sat between Classes and Members —
  * which made a seven-item strip read as one undifferentiated list.
+ *
+ * Security is last and alone because it is the one item that changes
+ * nothing anybody else can see. It is opened perhaps twice a year, so it
+ * pays the scroll on a narrow screen rather than pushing a daily item
+ * further right to save itself the trip.
  *
  * Order inside each group is by how often it is opened, so the leftmost
  * pills are the ones reached for most and the strip rarely has to be
@@ -48,6 +54,7 @@ const NAV: readonly AdminNavItem[] = [
   { href: "/admin/timetable", label: "Timetable", startsGroup: true },
   { href: "/admin/pricing", label: "Pricing" },
   { href: "/admin/photos", label: "Photos" },
+  { href: "/admin/security", label: "Security", startsGroup: true },
 ];
 
 export function AdminShell({

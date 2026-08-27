@@ -48,9 +48,11 @@ export async function isAdmin(): Promise<boolean> {
  * Signed out is treated differently from signed in and unauthorised, and
  * the difference is deliberate:
  *
- *   - Signed out → /login, carrying the destination. The gym owner
- *     arriving at a bookmark with an expired session needs a way in, and
- *     bouncing him to a 404 would look like the panel had been deleted.
+ *   - Signed out → /admin/login. The gym owner arriving at a bookmark
+ *     with an expired session needs a way in, and bouncing him to a 404
+ *     would look like the panel had been deleted. The staff door rather
+ *     than the member one, because the member one asks for a credential
+ *     that would not get him here.
  *
  *   - Signed in, not an admin → notFound(). Not a redirect and not a "you
  *     do not have permission" page, because both of those confirm to a
@@ -61,7 +63,7 @@ export async function isAdmin(): Promise<boolean> {
  */
 export async function requireAdmin() {
   const user = await getUser();
-  if (!user) redirect("/login?next=/admin");
+  if (!user) redirect("/admin/login");
 
   if (!(await isAdmin())) notFound();
 
