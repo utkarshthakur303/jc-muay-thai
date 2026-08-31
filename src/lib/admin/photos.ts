@@ -11,7 +11,8 @@ import { createClient } from "@/lib/supabase/server";
  *
  * Every call here runs as the SIGNED-IN OWNER, not as the service role —
  * both the storage write and the table write. That is the standing rule
- * in CLAUDE.md: RLS is the enforcement. There is no `isAdmin()` check in
+ * in the project's engineering rules: RLS is the enforcement. There is
+ * no `isAdmin()` check in
  * this file on purpose, because a check here would look like the gate
  * while the real one sat in Postgres, and the day the two disagreed the
  * TypeScript would be believed.

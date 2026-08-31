@@ -11,7 +11,8 @@ import {
  *
  * ── A BARE fetch, FOR THE SAME REASON AS THE TIMETABLE AND THE PHOTOS ─
  * `/` must stay statically prerendered — the first non-negotiable in
- * CLAUDE.md — and the home page shows prices, on every class card.
+ * the project's engineering rules — and the home page shows prices, on
+ * every class card.
  * `lib/supabase/server.ts` calls `cookies()`, and touching `cookies()`
  * during render opts the whole route out of static generation silently:
  * the build output flips from `○ (Static)` to `ƒ (Dynamic)` and nothing

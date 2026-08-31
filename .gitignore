@@ -8,9 +8,7 @@ next-env.d.ts
 .env
 .env*.local
 
-# Working notes and agent context — deliberately untracked.
-# MEMORY.md records incident state (including credentials known to be
-# compromised). This repo is PUBLIC; committing it would publish that.
+# Local working notes — not part of the build, and not for a public repo.
 CLAUDE.md
 MEMORY.md
 PROJECT.md

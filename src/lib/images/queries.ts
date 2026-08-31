@@ -13,7 +13,8 @@ import { env } from "@/lib/env";
  *
  * ── A BARE fetch, FOR THE SAME REASON AS THE TIMETABLE ──────────────
  * `/` must stay statically prerendered — the first non-negotiable in
- * CLAUDE.md. `lib/supabase/server.ts` calls `cookies()`, and touching
+ * the project's engineering rules. `lib/supabase/server.ts` calls
+ * `cookies()`, and touching
  * `cookies()` during render opts the whole route out of static
  * generation silently: the build output flips from `○ (Static)` to
  * `ƒ (Dynamic)` and nothing else complains.

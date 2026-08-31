@@ -17,7 +17,8 @@ import { createClient, getUser } from "@/lib/supabase/server";
  * by the policies on each table; this function decides what to *render*.
  * If it were the only check, an admin page would be a page whose contents
  * anyone could fetch from PostgREST directly with their own key — which is
- * precisely the failure mode CLAUDE.md's second non-negotiable describes.
+ * precisely the failure mode the project's second engineering rule
+ * describes.
  *
  * FAILS CLOSED. Any error — network, PGRST205 before the migration is
  * applied, a revoked grant — resolves to `false`. This is the opposite of

@@ -29,7 +29,8 @@ import type { GalleryPhoto } from "@/lib/images/queries";
  * to a real width would mean the collage assembling itself after
  * hydration — a reflow on every visit, and a client component wrapping
  * the layout of a page that must stay statically prerendered
- * (CLAUDE.md, first non-negotiable). This runs once at build time and
+ * (the first of the project's engineering rules). This runs once at
+ * build time and
  * ships as numbers.
  *
  * Only the scroller below it is interactive, so only that ships

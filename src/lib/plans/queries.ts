@@ -42,8 +42,8 @@ import { createClient, getUser } from "@/lib/supabase/server";
  * did before it existed. The plan step activates by itself the moment the
  * migration lands, with no second deploy.
  *
- * This is not a softening of the "reads fail loudly" rule in PROJECT.md
- * §6. That rule is about never showing a member a WRONG number — a failed
+ * This is not a softening of the project's "reads fail loudly" rule.
+ * That rule is about never showing a member a WRONG number — a failed
  * attendance read rendering as a streak of zero told someone with thirty
  * days that they had trained never. Nothing here renders a wrong anything;
  * an unavailable table renders no plan UI at all. The write still fails

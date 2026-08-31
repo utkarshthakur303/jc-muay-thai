@@ -157,7 +157,7 @@ grant delete on table public.class_sessions to authenticated;
 -- Previously only the service-role key could write these rows, from
 -- ensureHorizon. The timetable editor has to do it as the signed-in
 -- owner instead, so that RLS is the enforcement rather than a server
--- action remembering to check — the standing rule in CLAUDE.md.
+-- action remembering to check — a standing rule of this project.
 --
 -- The DELETE policy is bounded to FUTURE occurrences. A past class is
 -- the record of what actually ran and what somebody booked; no edit to

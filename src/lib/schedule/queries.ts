@@ -12,7 +12,8 @@ import { env } from "@/lib/env";
  *
  * ── WHY THIS IS A BARE fetch AND NOT THE SUPABASE CLIENT ────────────
  * `/` must stay statically prerendered — the first non-negotiable in
- * CLAUDE.md, and the thing that lets the marketing page be served from
+ * the project's engineering rules, and the thing that lets the marketing
+ * page be served from
  * the edge with no Node process behind it.
  *
  * `lib/supabase/server.ts` calls `cookies()`. Touching `cookies()` during

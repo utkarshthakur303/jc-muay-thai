@@ -42,8 +42,9 @@
  *
  * That is what keeps this on the server. The alternative — measuring the
  * container in the browser and packing to the real width — reflows after
- * hydration, and `/` must stay statically prerendered (CLAUDE.md, first
- * non-negotiable). This runs once at build time and ships as numbers.
+ * hydration, and `/` must stay statically prerendered — the first of the
+ * project's engineering rules. This runs once at build time and ships as
+ * numbers.
  */
 
 export type Shaped = {
