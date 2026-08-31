@@ -1,56 +1,49 @@
-import { GalleryGrid } from "@/components/gallery/GalleryGrid";
+import { GalleryStrip } from "@/components/gallery/GalleryStrip";
 import { Section } from "@/components/layout/Section";
+import { packCollage } from "@/lib/gallery/collage";
 import type { GalleryPhoto } from "@/lib/images/queries";
 
 /**
- * Photographs of the training floor.
+ * Photographs of the gym.
  *
- * Layout is CSS multi-column rather than a fixed grid, for one reason:
- * every image keeps its own aspect ratio and nothing is cropped. A grid
- * with a shared aspect box would centre-crop whatever the client sends,
- * and the thing a gym photographs is people — cropping a face out of a
- * photo of your own students is not a defensible default. Column count
- * steps 1 → 2 → 3 with width, and the layout does not care how many
- * images exist, which matters because today there are three and the
- * client has been asked for a dozen.
+ * ── IT USED TO BE A MASONRY GRID ────────────────────────────────────
+ * Three CSS columns, one photograph per cell, the whole set on screen at
+ * once. That worked at five photographs. The client asked on 2026-08-31
+ * for something that takes as many as the gym can produce, and a grid
+ * answers that by growing downwards until the gallery is the longest
+ * section on a page whose other four sections are the actual product.
  *
- * The mockup hardcoded a pixel height per image, which meant the browser
- * letterboxed or squashed anything whose real proportions differed. Here
- * the intrinsic dimensions come from the files themselves, so next/image
- * reserves exactly the right box before a byte arrives and the section
- * contributes nothing to layout shift.
+ * So it scrolls sideways instead. Height is fixed whatever the count;
+ * fifty photographs cost exactly as much page as five.
  *
- * There IS now a lightbox, and this comment used to argue there should
- * not be. The argument was about cost — focus trap, Escape, focus
- * restoration, scroll lock, aria-modal — all of which is hand-written work
- * that is easy to get subtly wrong. The client asked for click-to-enlarge,
- * and the honest answer turned out to be that native `<dialog>` supplies
- * almost every item on that list from the platform. See GalleryGrid.
+ * ── WHY THE PACKING HAPPENS HERE, ON THE SERVER ─────────────────────
+ * `packCollage` groups the photographs into columns that each stand
+ * exactly one strip tall — a portrait alone, two landscapes stacked —
+ * so nothing is cropped and the top and bottom of the strip are a
+ * straight line. The client chose that over uniform cards on
+ * 2026-08-31: these are pictures of people standing at full height, and
+ * a square card takes their heads off.
  *
- * Still deliberately absent: `priority`. This is the fourth section down;
- * preloading it would take bandwidth from the hero, which is the page's
- * LCP element. next/image lazy-loads by default and that is correct.
+ * It returns fractions rather than pixels, which is what lets it run
+ * here instead of in the browser. Measuring the container and packing
+ * to a real width would mean the collage assembling itself after
+ * hydration — a reflow on every visit, and a client component wrapping
+ * the layout of a page that must stay statically prerendered
+ * (CLAUDE.md, first non-negotiable). This runs once at build time and
+ * ships as numbers.
  *
- * One caveat worth knowing: CSS columns fill top-to-bottom, column by
- * column, so the visual order is not the DOM order once there is more than
- * one row. That is fine for photographs, which carry no sequence. It would
- * not be fine for anything that reads as a list of steps.
- *
- * This stays a Server Component; only the grid below it is interactive, so
- * only the grid ships JavaScript.
+ * Only the scroller below it is interactive, so only that ships
+ * JavaScript.
  *
  * ── AN EMPTY GALLERY REMOVES THE SECTION ────────────────────────────
- * Not an empty grid, not a "photographs coming soon" line — the section
- * is not rendered at all, and the page closes up around it. The client
- * chose this on 2026-08-23 over the alternative of the built-in
- * photographs reappearing, which would have meant deleting them did not
- * stick.
+ * Not an empty strip, not a "photographs coming soon" line — the
+ * section is not rendered at all and the page closes up around it. The
+ * client chose this on 2026-08-23 over the built-in photographs
+ * reappearing, which would have meant deleting them did not stick.
  *
  * This is the one place the whole feature can change the shape of the
- * home page, so it is worth being blunt about: the panel says so out
- * loud on the Photos screen rather than leaving the owner to discover it
- * by looking at the live site.
- * ────────────────────────────────────────────────────────────────────
+ * home page, so the panel says it out loud on the Photos screen rather
+ * than leaving the owner to find out by looking at the live site.
  */
 export function GallerySection({
   photos,
@@ -59,13 +52,16 @@ export function GallerySection({
 }) {
   if (photos.length === 0) return null;
 
+  const columns = packCollage(photos);
+
   return (
     <Section
       id="gallery"
       title="GALLERY"
-      intro="Bag work, pad rounds and sparring — the ordinary week at the gym. Tap any photograph to see it full size."
+      meta={`${photos.length} ${photos.length === 1 ? "photograph" : "photographs"}`}
+      intro="The gym, and the nights it trains for — weigh-ins, corners, belts and the people who turn up for all of it. Swipe, or tap any photograph to see it full size."
     >
-      <GalleryGrid images={photos} />
+      <GalleryStrip columns={columns} />
     </Section>
   );
 }

@@ -117,16 +117,20 @@ export const IMAGE_SLOTS: readonly ImageSlot[] = [
     shapes: CLASS_SHAPES,
     needsAlt: true,
     /**
-     * Kids is the one slot that ships empty, and the reason is in
-     * src/content/classes.ts: every photograph this project has is of
-     * adults, and putting one behind a card headed "Kids" tells a parent
-     * something untrue about what their child walks into. The card
-     * renders on a plain surface until the gym has a real one.
+     * Kids is the one slot that SHIPPED empty, and the reason held until
+     * 2026-08-31: every photograph the project had was of adults, and one
+     * of those behind a card headed "Kids" tells a parent something
+     * untrue about what their child walks into.
+     *
+     * The gym then sent a photograph with a child in it, and the client
+     * asked for the card to be filled. The note below is what shows if
+     * that photograph is ever removed, so it still has to make the
+     * original argument.
      */
     ...(level === "kids"
       ? {
           emptyNote:
-            "Deliberately empty. Every photograph we have is of adults, and one of those behind a card headed Kids would mislead a parent. The card looks fine without it — add one only when you have a photograph of an actual kids' session.",
+            "Empty until a real one arrives. A photograph of adults behind a card headed Kids would mislead a parent, so the card renders plain rather than borrowing one. Add a photograph of an actual kids' session and it fills.",
         }
       : {}),
   })),

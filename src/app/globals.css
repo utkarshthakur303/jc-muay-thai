@@ -743,6 +743,127 @@ html[data-member] .guest-only {
 }
 
 /* ---------------------------------------------------------------
+   THE GALLERY STRIP
+
+   A sideways-scrolling collage. The packing — which photographs share a
+   column and how tall each one stands — is arithmetic done on the server;
+   see src/lib/gallery/collage.ts. Everything it produces is a fraction of
+   ONE number, `--strip-h`, so the three breakpoints below are the entire
+   responsive story and the collage scales rather than reflows.
+
+   `--col-w` and `--cell-h` are those fractions, written per element by
+   the component. They are the only numbers that come from JSX, and they
+   are shapes rather than sizes — no pixel, colour or font crosses the
+   boundary.
+
+   SNAPPING IS `proximity`, NOT `mandatory`. Columns here are not a
+   uniform width, and a lone landscape can be wider than a phone screen.
+   Under `mandatory` the browser must land on a snap point, so scrolling
+   to the far end of a strip whose last snap point sits beyond it gets
+   yanked back to the previous column — the auto-advance and the snapping
+   fight, visibly, once per lap. `proximity` snaps a finger swipe that
+   ends near a column edge and otherwise leaves the strip where it was
+   put.
+
+   `overscroll-behavior-x: contain` is what stops a swipe that runs off
+   the end of the strip being taken by the browser as a back-navigation
+   gesture. Losing the page because you looked at the last photograph is
+   a bad way to end a visit.
+   --------------------------------------------------------------- */
+@utility photo-strip {
+  --strip-h: 17rem;
+  --strip-gap: 0.028;
+  --fade: 1.75rem;
+  --fade-start: 0px;
+  --fade-end: 0px;
+
+  display: flex;
+  align-items: start;
+  gap: calc(var(--strip-h) * var(--strip-gap));
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  /* Room for a focus ring, which `overflow-y: hidden` would otherwise
+     shave off the top and bottom of whichever photograph has it. */
+  padding-block: 3px;
+
+  /* The strip is a gesture, not a widget with a scrollbar under it. The
+     arrows, the fades and the progress line all say it moves. */
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (min-width: 40rem) {
+    --strip-h: 21rem;
+  }
+  @media (min-width: 64rem) {
+    --strip-h: 27rem;
+  }
+
+  /* Photographs that stop dead at a hard edge read as clipped. The fade
+     appears only on a side that has more strip behind it, so the first
+     photograph is not dimmed while it is the first — which would look
+     like a rendering fault rather than an affordance. */
+  &[data-more-before="true"] {
+    --fade-start: var(--fade);
+  }
+  &[data-more-after="true"] {
+    --fade-end: var(--fade);
+  }
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent 100%
+  );
+
+  /* The base layer already collapses transitions; scrolling is the one
+     motion it cannot reach, because it is asked for in JavaScript. */
+  @media (prefers-reduced-motion: reduce) {
+    scroll-behavior: auto;
+  }
+}
+
+@utility photo-strip-column {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: calc(var(--strip-h) * var(--strip-gap));
+  width: calc(var(--strip-h) * var(--col-w));
+  scroll-snap-align: start;
+}
+
+@utility photo-strip-cell {
+  height: calc(var(--strip-h) * var(--cell-h));
+}
+
+/* A line rather than a row of dots. Dots stop scaling somewhere around
+   a dozen, and the client asked for a gallery that takes as many
+   photographs as the gym can produce. */
+@utility strip-progress {
+  &::after {
+    content: "";
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background-color: var(--color-accent);
+    transform-origin: left center;
+    transform: scaleX(var(--strip-progress, 0));
+    transition: transform 0.25s var(--ease-out-expo);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      transition: none;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------
    SCRIMS
    Exposed as utilities so the gradient lives here, not in JSX.
    --------------------------------------------------------------- */

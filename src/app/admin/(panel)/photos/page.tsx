@@ -1,5 +1,6 @@
 import { AdminShell } from "@/components/admin/AdminShell";
 import { GalleryList } from "@/components/admin/GalleryList";
+import { PhotoFormatsNote } from "@/components/admin/PhotoFormatsNote";
 import { PhotoUploadForm } from "@/components/admin/PhotoUploadForm";
 import { SlotCard } from "@/components/admin/SlotCard";
 import { GALLERY_SLOT, IMAGE_SLOTS } from "@/content/imageSlots";
@@ -66,7 +67,9 @@ export default async function AdminPhotosPage() {
         </div>
       )}
 
-      <section aria-labelledby="fixed" className="mt-8">
+      <PhotoFormatsNote />
+
+      <section aria-labelledby="fixed" className="mt-10">
         <h2
           id="fixed"
           className="font-mono text-[11px] tracking-[0.12em] text-text-3 uppercase"
@@ -100,9 +103,12 @@ export default async function AdminPhotosPage() {
           {gallery.length === 1 ? "photograph" : "photographs"}
         </h2>
         <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-text-2">
-          The grid on the home page. Every photograph keeps its own shape —
-          nothing here is cropped — and the order below is the order they
-          appear in.
+          The strip on the home page, which visitors swipe sideways and which
+          moves on by itself every couple of seconds. Every photograph keeps
+          its own shape — nothing here is cropped — so tall ones stand alone
+          and wide ones are stacked in pairs to fill the same height. The
+          order below is the order they appear in, and it decides which ones
+          end up sharing a column.
         </p>
 
         {gallery.length === 0 ? (
@@ -115,7 +121,8 @@ export default async function AdminPhotosPage() {
           */
           <p className="mt-4 rounded-card border border-border px-5 py-4 text-sm leading-relaxed text-text-2">
             There are no gallery photographs, so the gallery section does not
-            appear on the home page at all. Add one below and it comes back.
+            appear on the home page at all — and the Gallery link disappears
+            from the menu with it. Add one below and both come back.
           </p>
         ) : (
           <GalleryList photos={gallery} editable={editable} />
@@ -138,8 +145,7 @@ export default async function AdminPhotosPage() {
 
       <p className="mt-10 max-w-prose text-[13px] leading-relaxed text-text-3">
         Changes take effect straight away, on the home page and everywhere else
-        the picture appears. Photographs taken sideways on a phone are turned
-        the right way up automatically.
+        the picture appears.
       </p>
     </AdminShell>
   );
