@@ -610,6 +610,37 @@ html[data-member] .guest-only {
 }
 
 /* ---------------------------------------------------------------
+   GALLERY PREVIEW (admin)
+
+   A full-screen sheet over the Photos screen that shows the home
+   page's gallery strip. Native <dialog> for the same reasons as the
+   lightbox above. It covers the whole viewport rather than floating,
+   because the strip's height follows the viewport's width, and how
+   much of the strip a visitor sees at once is part of what is being
+   previewed.
+
+   The ground comes from `bg-bg` on the element, not from here: the
+   component portals the dialog to <body>, outside `.admin-surface`,
+   so `--bg` is the site's again without repeating either theme's
+   value in this rule.
+   --------------------------------------------------------------- */
+@utility preview-sheet {
+  width: 100vw;
+  height: 100dvh;
+  max-width: 100vw;
+  max-height: 100dvh;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  &[open] {
+    animation: jc-fade-in 0.18s var(--ease-out-expo) both;
+  }
+}
+
+/* ---------------------------------------------------------------
    SURFACES
    The card treatment appears on every bento tile and every class
    card. One definition so a change to the radius or the border

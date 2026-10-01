@@ -1,5 +1,6 @@
 import { AdminShell } from "@/components/admin/AdminShell";
 import { GalleryList } from "@/components/admin/GalleryList";
+import { GalleryPreview } from "@/components/admin/GalleryPreview";
 import { PhotoFormatsNote } from "@/components/admin/PhotoFormatsNote";
 import { PhotoUploadForm } from "@/components/admin/PhotoUploadForm";
 import { SlotCard } from "@/components/admin/SlotCard";
@@ -95,13 +96,20 @@ export default async function AdminPhotosPage() {
       </section>
 
       <section aria-labelledby="gallery" className="mt-12">
-        <h2
-          id="gallery"
-          className="font-mono text-[11px] tracking-[0.12em] text-text-3 uppercase"
-        >
-          Gallery · {gallery.length}{" "}
-          {gallery.length === 1 ? "photograph" : "photographs"}
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2
+            id="gallery"
+            className="font-mono text-[11px] tracking-[0.12em] text-text-3 uppercase"
+          >
+            Gallery · {gallery.length}{" "}
+            {gallery.length === 1 ? "photograph" : "photographs"}
+          </h2>
+          {/* Offered on the fallback path too: the built-in photographs
+              are what the home page is showing, so previewing them is
+              still true. Not offered for an empty gallery, which the
+              home page does not show at all — the note below says so. */}
+          {gallery.length > 0 ? <GalleryPreview photos={gallery} /> : null}
+        </div>
         <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-text-2">
           The strip on the home page, which visitors swipe sideways and which
           moves on by itself every couple of seconds. Every photograph keeps
