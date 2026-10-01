@@ -65,6 +65,13 @@ const serverSchema = z.object({
    * attacker exactly which account to spend their effort on.
    */
   ADMIN_LOGIN_EMAIL: optionalEmail,
+
+  /**
+   * Shared with Vercel Cron, which sends it as `Authorization: Bearer …`
+   * when it calls /api/keepalive. Absent → that route refuses everyone,
+   * including the cron, rather than running unauthenticated.
+   */
+  CRON_SECRET: optionalString,
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -83,6 +90,7 @@ export function serverEnv(): ServerEnv {
     CONTACT_NOTIFICATION_EMAIL: process.env.CONTACT_NOTIFICATION_EMAIL,
     ADMIN_LOGIN_ID: process.env.ADMIN_LOGIN_ID,
     ADMIN_LOGIN_EMAIL: process.env.ADMIN_LOGIN_EMAIL,
+    CRON_SECRET: process.env.CRON_SECRET,
   });
 
   if (!parsed.success) {
