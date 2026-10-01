@@ -1,6 +1,14 @@
+import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
-import type { EmailOtpType } from "@supabase/supabase-js";
+import type { EmailOtpType, User } from "@supabase/supabase-js";
 
+import {
+  MEMBER_COOKIE,
+  MEMBER_COOKIE_MAX_AGE,
+  encodeMember,
+  memberCookieOptions,
+  memberDisplayFrom,
+} from "@/lib/auth/memberCookie";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -52,16 +60,18 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
 
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      await writeMemberCookie(data.user);
       return NextResponse.redirect(`${origin}${next}`);
     }
   } else if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       type,
       token_hash: tokenHash,
     });
     if (!error) {
+      await writeMemberCookie(data.user);
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
@@ -73,4 +83,29 @@ export async function GET(request: NextRequest) {
    * bare failure.
    */
   return NextResponse.redirect(`${origin}/login?error=link`);
+}
+
+/**
+ * Writes the display cookie on this redirect, the same way signIn does.
+ *
+ * Leaving it to the proxy on the next request looked sufficient and was
+ * not. The next request is almost always for `/`, which is static, and a
+ * browser that has seen the site before revalidates it with If-None-Match.
+ * Vercel answers that with a 304 and drops the proxy's Set-Cookie, so the
+ * page painted "Sign in" and only a later prefetch delivered the cookie —
+ * after the pre-paint script and the chip had both already read it.
+ * Measured on production 2026-10-01: a 200 carried the cookie, a 304 with
+ * the same session did not.
+ *
+ * This response is a route handler's, never cached, and the session cookie
+ * already rides on it — so the display cookie arrives with it.
+ */
+async function writeMemberCookie(user: User | null): Promise<void> {
+  if (!user) return;
+  const store = await cookies();
+  store.set({
+    name: MEMBER_COOKIE,
+    value: encodeMember(memberDisplayFrom(user)),
+    ...memberCookieOptions(MEMBER_COOKIE_MAX_AGE),
+  });
 }
