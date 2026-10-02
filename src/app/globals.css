@@ -468,6 +468,69 @@
 }
 
 /* ---------------------------------------------------------------
+   SCOPED THEME OVERRIDE: the hero card in light mode.
+
+   The hero was the one dark tile left on a cream page — its scrim and
+   its on-photo colours are brand constants, deliberately the same in
+   both themes. The client asked (2026-10-02) for it to brighten in
+   light mode and stay exactly as it is in dark.
+
+   A light version of --scrim-hero cannot do it, because the photograph
+   is a dark studio shot and the copy does not sit at a fixed height:
+   it starts about 30% down a phone-sized card and nearer 50% on a
+   desktop one, and the card's own height follows the viewport's. Any
+   one gradient stop is under the copy at some size and above it at
+   another, and wherever it falls short, dark text lands on a dark
+   photograph.
+
+   So in light mode the dark scrim is switched off and the copy carries
+   its own backing, which starts 6rem above the eyebrow and is solid
+   from the eyebrow down — tied to the text, not to the card's height.
+   The top of the photograph stays clean; the bottom is a white card
+   with the faintest trace of the image showing through, the way the
+   class cards' scrim reads in this theme.
+
+   The on-photo tokens are re-pointed at the theme's text tiers, so the
+   wordmark, the body copy and the outline button follow without the
+   component knowing which theme it is in. The two red lines use
+   --accent-strong in the component, which IS the brand red in dark mode
+   and the deeper AA-safe red in light.
+   --------------------------------------------------------------- */
+:root[data-theme="light"] .hero-card {
+  --scrim-hero: none;
+  --color-on-photo: var(--text);
+  --color-on-photo-2: var(--text-2);
+  --color-on-photo-3: var(--text-3);
+}
+
+.hero-copy {
+  position: relative;
+}
+
+/* Eased rather than linear. A straight 0 → 0.92 ramp over 4rem left a
+   hard horizontal line across the photograph where the ramp met the
+   plateau; spreading it over 6rem and easing both ends lets the photo
+   melt into the white instead. The plateau still begins at the top of
+   the block's padding, so the copy itself only ever sits on 0.92. */
+:root[data-theme="light"] .hero-copy::before {
+  content: "";
+  position: absolute;
+  inset: -6rem 0 0;
+  /* Above the photograph (-10 in the card's isolated stacking context),
+     below the copy. */
+  z-index: -1;
+  pointer-events: none;
+  background-image: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0) 0,
+    rgb(255 255 255 / 0.18) 1.5rem,
+    rgb(255 255 255 / 0.5) 3rem,
+    rgb(255 255 255 / 0.8) 4.5rem,
+    rgb(255 255 255 / 0.92) 6rem
+  );
+}
+
+/* ---------------------------------------------------------------
    SCOPED THEME OVERRIDE: the admin panel's ground.
 
    The owner and the members share one login and one set of routes, so
